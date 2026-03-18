@@ -23,7 +23,12 @@ def html_to_pdf(html_content, output_path):
     """
     with sync_playwright() as p:
         # Lanzamos navegador (chromium es ligero y standard)
-        browser = p.chromium.launch()
+        # Añadimos args específicos para Docker (root execution)
+        browser = p.chromium.launch(args=[
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage"
+        ])
         page = browser.new_page()
         
         # Establecemos el contenido
