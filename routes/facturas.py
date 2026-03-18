@@ -364,8 +364,6 @@ def generar_pdf(id):
     NOTA: Se usa xhtml2pdf en lugar de WeasyPrint para garantizar
     compatibilidad en Windows sin instalar librerías GTK3 adicionales.
     """
-    from xhtml2pdf import pisa
-    
     factura = Factura.query.get_or_404(id)
     partidas = factura.partidas.order_by(FacturaPartida.orden).all()
     

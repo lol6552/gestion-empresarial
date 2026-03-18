@@ -401,7 +401,6 @@ def generar_pdf(id):
     Retorna:
         Archivo PDF para descargar/visualizar
     """
-    from xhtml2pdf import pisa
     from io import BytesIO
     
     oferta = Oferta.query.get_or_404(id)

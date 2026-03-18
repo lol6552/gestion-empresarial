@@ -389,8 +389,6 @@ def generar_pdf(id):
     """
     Genera un PDF del parte de trabajo usando xhtml2pdf.
     """
-    from xhtml2pdf import pisa
-    
     parte = ParteTrabajo.query.get_or_404(id)
     partidas = parte.partidas.order_by(PartePartida.orden).all()
     
