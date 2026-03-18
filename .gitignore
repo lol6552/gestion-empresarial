@@ -1,0 +1,30 @@
+# ==============================================================================
+# .gitignore - Archivos que Git (GitHub) debe IGNORAR
+# ==============================================================================
+# Esto protege tu base de datos, claves secretas y archivos temporales
+# de ser subidos accidentalmente a GitHub.
+# ==============================================================================
+
+# Base de datos y PDFs generados (datos sensibles de clientes)
+instance/
+
+# Entorno virtual de Python
+venv/
+
+# Caché de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Variables de entorno (contienen claves secretas)
+.env
+
+# Archivos del editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Configuración del agente IA
+.agent/
+.gemini/

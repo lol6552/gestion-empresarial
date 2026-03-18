@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root {
+            --azul-corporativo: #1a334d;
+            --negro-tabla: #222222;
+            --gris-texto: #333333;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        /* Fuerza a Playwright a imprimir colores de fondo */
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: var(--gris-texto);
+            background-color: white;
+            margin: 0;
+            padding: 1cm 1.5cm;
+            line-height: 1.3;
+        }
+
+        /* --- CABECERA --- */
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-box {
+            background-color: white;
+            border: 2px solid var(--azul-corporativo);
+            color: var(--azul-corporativo);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .brand-info h1 {
+            margin: 0;
+            font-size: 14pt;
+            color: #000;
+            text-transform: uppercase;
+        }
+
+        .brand-info p {
+            margin: 0;
+            font-size: 9pt;
+            color: #555;
+            line-height: 1.2;
+        }
+
+        .contact-top {
+            display: flex;
+            gap: 15px;
+            font-size: 9pt;
+        }
+
+        /* --- BANNER PRINCIPAL (AZUL) --- */
+        .main-banner {
+            background-color: var(--azul-corporativo);
+            color: white;
+            display: flex;
+            padding: 25px 30px;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 25px;
+        }
+
+        .client-block {
+            font-size: 10pt;
+        }
+
+        .client-block .label {
+            font-size: 8.5pt;
+            color: #cbd5e1;
+            margin-bottom: 5px;
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .client-name {
+            font-size: 12pt;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+        }
+
+        .doc-title-block {
+            text-align: right;
+        }
+
+        .doc-title-block h2 {
+            font-size: 34pt;
+            margin: 0;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.5px;
+        }
+
+        .doc-meta {
+            margin-top: 10px;
+            font-size: 10pt;
+        }
+
+        /* --- TABLA DE CONCEPTOS --- */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .items-table th {
+            background-color: var(--negro-tabla);
+            color: white;
+            padding: 10px;
+            font-size: 8.5pt;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .items-table th:first-child {
+            text-align: left;
+        }
+
+        .items-table td {
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            font-size: 10pt;
+        }
+
+        .col-desc {
+            width: 55%;
+        }
+
+        .col-unit,
+        .col-qty {
+            width: 15%;
+            text-align: center;
+        }
+
+        .col-total {
+            width: 15%;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        /* --- TOTALES Y CONDICIONES --- */
+        .bottom-layout {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .totals-column {
+            width: 35%;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 10pt;
+        }
+
+        .grand-total-bar {
+            background-color: var(--negro-tabla);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 15px;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 11pt;
+            text-transform: uppercase;
+        }
+
+        /* --- FIRMA --- */
+        .signature-section {
+            width: 250px;
+            margin-left: auto;
+            /* Alinea a la derecha */
+            margin-top: 50px;
+            /* Espacio para que quepa la firma */
+            position: relative;
+            text-align: center;
+        }
+
+        .signature-img {
+            width: 170px;
+            mix-blend-mode: multiply;
+            position: absolute;
+            bottom: 40px;
+            /* Posición exacta desde abajo (encima de la línea) */
+            left: 50%;
+            transform: translateX(-50%);
+            /* Centrado horizontal */
+            z-index: 10;
+        }
+
+        .signature-line {
+            border-top: 1px solid #333;
+            width: 100%;
+            padding-top: 5px;
+            font-size: 9pt;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="top-header">
+        <div class="brand">
+            <div class="logo-box">⚡</div>
+            <div class="brand-info">
+                <h1>{{ autonomo.nombre }}</h1>
+                <p>{{ autonomo.profesion }}</p>
+                <p>DNI: {{ autonomo.dni }}</p>
+            </div>
+        </div>
+        <div class="contact-top">
+            <span>📞 Tel: {{ autonomo.telefono }}</span>
+            <span>✉️ {{ autonomo.email }}</span>
+            <span>📍 {{ autonomo.direccion }}</span>
+        </div>
+    </header>
+
+    <section class="main-banner">
+        <div class="client-block">
+            <span class="label">FACTURAR A</span>
+            <span class="client-name">{{ factura.cliente.nombre }} {{ factura.cliente.apellido }}</span>
+            <span>{{ factura.cliente.dni }}</span><br>
+            {{ factura.cliente.direccion }}<br>
+            {{ factura.cliente.codigo_postal }} {{ factura.cliente.localidad }}
+        </div>
+        <div class="doc-title-block">
+            <h2>{{ tipo_documento | default('FACTURA') }}</h2>
+            <div class="doc-meta">
+                Nº {{ tipo_documento | default('FACTURA') }}: <b>{{ factura.numero }}</b><br>
+                FECHA: <b>{{ factura.fecha.strftime('%d/%m/%Y') }}</b>
+            </div>
+        </div>
+    </section>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th class="col-desc">Descripción del Artículo</th>
+                <th class="col-unit">Precio Unitario</th>
+                <th class="col-qty">Cantidad</th>
+                <th class="col-total">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for partida in partidas %}
+            <tr>
+                <td>{{ partida.descripcion }}</td>
+                <td class="col-unit">{{ "%.2f"|format(partida.precio) if partida.precio else "-" }}</td>
+                <td class="col-qty">{{ partida.cantidad }}</td>
+                <td class="col-total">{{ "%.2f"|format(partida.total) }} €</td>
+            </tr>
+            {% endfor %}
+            <!-- Relleno de tabla si hay pocas líneas -->
+            {% if partidas|length < 4 %} {% for i in range(4 - partidas|length) %} <tr>
+                <td>&nbsp;</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+        </tbody>
+    </table>
+
+    <div class="bottom-layout">
+        <div style="width: 58%;">
+            <b style="font-size: 10pt;">Forma de Pago Aceptada</b>
+            <p style="font-size: 9pt; margin: 4px 0;">Transferencia: {{ autonomo.cuenta_bancaria }}<br>Bizum, Efectivo
+            </p>
+
+            <b style="font-size: 10pt; display: block; margin-top: 15px;">Términos y Condiciones</b>
+            <p style="font-size: 8.5pt; text-align: justify; color: #444; margin-top: 5px;">
+                El importe del trabajo se abonará a la finalización del servicio. Formas de pago aceptadas: efectivo,
+                Bizum o transferencia bancaria. En caso de transferencia, el pago deberá realizarse en un plazo máximo
+                de 24 horas.
+            </p>
+        </div>
+
+        <div class="totals-column">
+            <div class="total-row">
+                <span>Subtotal</span>
+                <span>{{ "%.2f"|format(factura.subtotal) }} €</span>
+            </div>
+            <div class="total-row">
+                <span>I.V.A. {{ iva_porcentaje if iva_porcentaje else 21 }}%</span>
+                <span>{{ "%.2f"|format(factura.iva) }} €</span>
+            </div>
+            <div class="grand-total-bar">
+                <span>TOTAL GENERAL</span>
+                <span>{{ "%.2f"|format(factura.total) }} €</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="signature-section">
+        {% if url_firma %}
+        <img src="{{ url_firma }}" class="signature-img" alt="Firma Profesional">
+        {% else %}
+        <div style="height: 100px;"></div>
+        {% endif %}
+        <div class="signature-line">
+            <b>{{ autonomo.nombre }}</b><br>
+            {{ autonomo.profesion }}
+        </div>
+    </div>
+
+</body>
+
+</html>

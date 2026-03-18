@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}Sistema de Gestión{% endblock %} | Gestión Empresarial</title>
+
+    <!-- Meta descripción para SEO -->
+    <meta name="description"
+        content="Sistema de gestión empresarial para autónomos - Clientes, ofertas, partes de trabajo y facturación">
+
+    <!-- Fuente Google Fonts: Inter para diseño moderno -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Hoja de estilos principal -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    {% block estilos_extra %}{% endblock %}
+</head>
+
+<body>
+    <!-- ================================================================== -->
+    <!-- CONTENEDOR PRINCIPAL -->
+    <!-- ================================================================== -->
+    <div class="app-container">
+
+        <!-- ============================================================== -->
+        <!-- SIDEBAR - Menú lateral de navegación -->
+        <!-- ============================================================== -->
+        <aside class="sidebar">
+            <!-- Logo y nombre de la empresa -->
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">📊</span>
+                    <span class="logo-text">Gestión</span>
+                </div>
+            </div>
+
+            <!-- Menú de navegación -->
+            <nav class="sidebar-nav">
+                <ul>
+                    <!-- Dashboard -->
+                    <li>
+                        <a href="{{ url_for('principal.dashboard') }}"
+                            class="nav-link {% if request.endpoint == 'principal.dashboard' %}active{% endif %}">
+                            <span class="nav-icon">🏠</span>
+                            <span class="nav-text">Dashboard</span>
+                        </a>
+                    </li>
+
+                    <!-- Clientes -->
+                    <li>
+                        <a href="{{ url_for('clientes.lista') }}"
+                            class="nav-link {% if 'clientes' in request.endpoint %}active{% endif %}">
+                            <span class="nav-icon">👥</span>
+                            <span class="nav-text">Clientes</span>
+                        </a>
+                    </li>
+
+                    <!-- Ofertas -->
+                    <li>
+                        <a href="{{ url_for('ofertas.lista') }}"
+                            class="nav-link {% if 'ofertas' in request.endpoint %}active{% endif %}">
+                            <span class="nav-icon">📝</span>
+                            <span class="nav-text">Ofertas</span>
+                        </a>
+                    </li>
+
+                    <!-- Partes de Trabajo -->
+                    <li>
+                        <a href="{{ url_for('partes.lista') }}"
+                            class="nav-link {% if 'partes' in request.endpoint %}active{% endif %}">
+                            <span class="nav-icon">🔧</span>
+                            <span class="nav-text">Partes</span>
+                        </a>
+                    </li>
+
+                    <!-- Facturas -->
+                    <li>
+                        <a href="{{ url_for('facturas.lista') }}"
+                            class="nav-link {% if 'facturas' in request.endpoint %}active{% endif %}">
+                            <span class="nav-icon">📄</span>
+                            <span class="nav-text">Facturas</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Pie del sidebar con info del usuario -->
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">JA</div>
+                    <div class="user-details">
+                        <span class="user-name">Javier Aranguren</span>
+                        <span class="user-role">Administrador</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ============================================================== -->
+        <!-- CONTENIDO PRINCIPAL -->
+        <!-- ============================================================== -->
+        <main class="main-content">
+
+            <!-- Header superior -->
+            <header class="main-header">
+                <div class="header-left">
+                    <h1 class="page-title">{% block titulo_pagina %}Dashboard{% endblock %}</h1>
+                </div>
+                <div class="header-right">
+                    <span class="header-date">{{ now.strftime('%d/%m/%Y') if now else '' }}</span>
+                </div>
+            </header>
+
+            <!-- Mensajes Flash (notificaciones) -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">
+                    <span class="flash-icon">
+                        {% if category == 'success' %}✓{% elif category == 'error' %}✗{% else %}ℹ{% endif %}
+                    </span>
+                    <span class="flash-text">{{ message }}</span>
+                    <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- Área de contenido dinámico -->
+            <div class="content-area">
+                {% block contenido %}{% endblock %}
+            </div>
+
+        </main>
+    </div>
+
+    {% block scripts_extra %}{% endblock %}
+</body>
+
+</html>

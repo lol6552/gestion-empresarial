@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Ofertas{% endblock %}
+{% block titulo_pagina %}Gestión de Ofertas{% endblock %}
+
+{% block contenido %}
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Cabecera con botón de nueva oferta -->
+<!-- ====================================================================== -->
+<div class="section-header">
+    <div class="section-info">
+        <p class="section-description">
+            Gestiona tus ofertas y presupuestos. Total: <strong>{{ ofertas|length }}</strong> oferta{{ 's' if
+            ofertas|length != 1 else '' }}.
+        </p>
+    </div>
+
+    <!-- SECCIÓN: Barra de búsqueda y filtros -->
+    <div class="search-container">
+        <form action="{{ url_for('ofertas.lista') }}" method="GET" class="search-form">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" name="q" value="{{ busqueda or '' }}" placeholder="Buscar por cliente o número..."
+                    class="search-input">
+                {% if busqueda %}
+                <a href="{{ url_for('ofertas.lista') }}" class="search-clear" title="Limpiar búsqueda">✕</a>
+                {% endif %}
+            </div>
+
+            <!-- Filtro de estado -->
+            <select name="estado" class="filter-select" onchange="this.form.submit()">
+                <option value="">Todos los estados</option>
+                <option value="pendiente" {% if estado_filtro=='pendiente' %}selected{% endif %}>Pendiente</option>
+                <option value="aceptada" {% if estado_filtro=='aceptada' %}selected{% endif %}>Aceptada</option>
+                <option value="rechazada" {% if estado_filtro=='rechazada' %}selected{% endif %}>Rechazada</option>
+            </select>
+
+            <button type="submit" class="btn btn-secondary">Buscar</button>
+        </form>
+    </div>
+
+    <div class="section-actions">
+        <a href="{{ url_for('ofertas.nueva') }}" class="btn btn-primary">
+            <span class="btn-icon">➕</span>
+            Nueva Oferta
+        </a>
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Tabla de ofertas -->
+<!-- ====================================================================== -->
+{% if ofertas %}
+<div class="table-container">
+    <table class="data-table" id="tabla-ofertas">
+        <thead>
+            <tr>
+                <th>Número</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th class="actions-column">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for oferta in ofertas %}
+            <tr>
+                <!-- Número de oferta -->
+                <td>
+                    <span class="offer-code">{{ oferta.numero }}</span>
+                </td>
+
+                <!-- Nombre del cliente -->
+                <td>
+                    <div class="client-name">
+                        <span class="name-initial">{{ oferta.cliente.nombre[0] }}{{ oferta.cliente.apellido[0] }}</span>
+                        <span>{{ oferta.cliente.nombre }} {{ oferta.cliente.apellido }}</span>
+                    </div>
+                </td>
+
+                <!-- Fecha -->
+                <td>{{ oferta.fecha.strftime('%d/%m/%Y') }}</td>
+
+                <!-- Total -->
+                <td>
+                    <span class="amount">{{ "%.2f"|format(oferta.total) }} €</span>
+                </td>
+
+                <!-- Estado con badge de color -->
+                <td>
+                    <span class="badge badge-{{ oferta.estado }}">
+                        {% if oferta.estado == 'pendiente' %}⏳{% elif oferta.estado == 'aceptada' %}✅{% else %}❌{% endif
+                        %}
+                        {{ oferta.estado|capitalize }}
+                    </span>
+                </td>
+
+                <!-- Acciones -->
+                <td class="actions-column">
+                    <div class="action-buttons">
+                        <!-- Botón PDF -->
+                        <a href="{{ url_for('ofertas.generar_pdf', id=oferta.id) }}" class="btn btn-small btn-pdf"
+                            title="Descargar PDF" target="_blank">
+                            📄
+                        </a>
+
+                        <!-- Botón Facturar (solo ofertas aceptadas) -->
+                        {% if oferta.estado == 'aceptada' %}
+                        <a href="{{ url_for('facturas.desde_oferta', oferta_id=oferta.id) }}"
+                            class="btn btn-small btn-invoice" title="Crear Factura">
+                            💶
+                        </a>
+                        {% endif %}
+
+                        <!-- Botón Cambiar Estado -->
+                        <form action="{{ url_for('ofertas.cambiar_estado', id=oferta.id) }}" method="POST"
+                            class="inline-form">
+                            <button type="submit" class="btn btn-small btn-status" title="Cambiar estado">
+                                🔄
+                            </button>
+                        </form>
+
+                        <!-- Botón Editar -->
+                        <a href="{{ url_for('ofertas.editar', id=oferta.id) }}" class="btn btn-small btn-edit"
+                            title="Editar oferta">
+                            ✏️
+                        </a>
+
+                        <!-- Botón Eliminar -->
+                        <form action="{{ url_for('ofertas.eliminar', id=oferta.id) }}" method="POST" class="delete-form"
+                            data-nombre="Oferta {{ oferta.numero }}">
+                            <button type="submit" class="btn btn-small btn-delete" title="Eliminar oferta" {% if
+                                oferta.facturas.count()> 0 %}disabled{% endif %}>
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<!-- Mensaje cuando no hay ofertas -->
+<div class="empty-state">
+    <div class="empty-icon">📝</div>
+    <h3>No hay ofertas registradas</h3>
+    <p>Comienza creando tu primera oferta/presupuesto.</p>
+    <a href="{{ url_for('ofertas.nueva') }}" class="btn btn-primary btn-large">
+        ➕ Crear primera oferta
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Manejador de eliminación con confirmación
+        const deleteForms = document.querySelectorAll('.delete-form');
+
+        deleteForms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const nombre = this.dataset.nombre;
+                const mensaje = `¿Estás seguro de eliminar ${nombre}?`;
+
+                if (!confirm(mensaje)) {
+                    e.preventDefault();
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

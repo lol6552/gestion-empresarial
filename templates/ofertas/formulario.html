@@ -1,0 +1,436 @@
+{% extends 'base.html' %}
+
+{% block titulo %}{{ 'Editar Oferta' if oferta else 'Nueva Oferta' }}{% endblock %}
+{% block titulo_pagina %}{{ 'Editar Oferta ' ~ oferta.numero if oferta else 'Nueva Oferta' }}{% endblock %}
+
+{% block estilos_extra %}
+<style>
+    /* Estilos para tabla de partidas */
+    .partidas-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    .partidas-table th {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .partidas-table td {
+        padding: 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .partidas-table input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    .partidas-table input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .partidas-table .col-descripcion {
+        width: 50%;
+    }
+
+    .partidas-table .col-precio {
+        width: 15%;
+    }
+
+    .partidas-table .col-cantidad {
+        width: 15%;
+    }
+
+    .partidas-table .col-total {
+        width: 15%;
+    }
+
+    .partidas-table .col-acciones {
+        width: 5%;
+    }
+
+    .partida-total-input {
+        background: #f1f5f9;
+        font-weight: 600;
+    }
+
+    .btn-add-row {
+        margin-top: 1rem;
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .btn-add-row:hover {
+        background: #059669;
+    }
+
+    .btn-remove-row {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+    }
+
+    .btn-remove-row:hover {
+        background: #dc2626;
+    }
+
+    /* Resumen de totales */
+    .totals-summary {
+        margin-top: 1.5rem;
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .totals-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .totals-row:last-child {
+        border-bottom: none;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #1e40af;
+    }
+
+    .totals-label {
+        color: #64748b;
+    }
+
+    .totals-value {
+        font-weight: 600;
+    }
+
+    /* Condiciones y firma */
+    .conditions-box {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-left: 4px solid #3b82f6;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .conditions-box h4 {
+        color: #1e40af;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 1rem;
+    }
+
+    .conditions-box p {
+        color: #475569;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        margin-bottom: 0.75rem;
+    }
+
+    .signature-area {
+        margin-top: 2rem;
+        padding: 2rem;
+        border: 2px dashed #cbd5e1;
+        border-radius: 8px;
+        text-align: center;
+        background: #fafafa;
+    }
+
+    .signature-area .signature-line {
+        border-top: 1px solid #64748b;
+        width: 60%;
+        margin: 3rem auto 0.5rem;
+    }
+
+    .signature-area .signature-label {
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    .payment-methods {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+
+    .payment-method-option {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .payment-method-option:hover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+
+    .payment-method-option:has(input:checked) {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="form-container">
+    <form action="{{ url_for('ofertas.editar', id=oferta.id) if oferta else url_for('ofertas.nueva') }}" method="POST"
+        class="main-form" id="oferta-form">
+
+        <!-- SECCIÓN: Datos básicos -->
+        <div class="form-section">
+            <h3 class="section-title">📋 Información de la Oferta</h3>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fecha">Fecha *</label>
+                    <input type="date" id="fecha" name="fecha"
+                        value="{{ datos.fecha if datos else (oferta.fecha.strftime('%Y-%m-%d') if oferta else fecha_hoy) }}"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="fecha_vencimiento">Fecha Vencimiento</label>
+                    <input type="date" id="fecha_vencimiento" name="fecha_vencimiento"
+                        value="{{ datos.fecha_vencimiento if datos else (oferta.fecha_vencimiento.strftime('%Y-%m-%d') if oferta and oferta.fecha_vencimiento else '') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="cliente_id">Cliente *</label>
+                    <select id="cliente_id" name="cliente_id" required>
+                        <option value="">-- Seleccionar cliente --</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}" {% if (datos and datos.cliente_id|string==cliente.id|string) or
+                            (oferta and oferta.cliente_id==cliente.id) %}selected{% endif %}>
+                            {{ cliente.apellido }}, {{ cliente.nombre }} ({{ cliente.dni }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="descripcion">Descripción general (opcional)</label>
+                <textarea id="descripcion" name="descripcion" rows="2"
+                    placeholder="Descripción general del trabajo...">{{ datos.descripcion if datos else (oferta.descripcion if oferta else '') }}</textarea>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: Partidas -->
+        <div class="form-section">
+            <h3 class="section-title">📝 Partidas / Conceptos</h3>
+
+            <table class="partidas-table" id="partidas-table">
+                <thead>
+                    <tr>
+                        <th class="col-descripcion">DESCRIPCIÓN</th>
+                        <th class="col-precio">PRECIO</th>
+                        <th class="col-cantidad">CANTIDAD</th>
+                        <th class="col-total">TOTAL</th>
+                        <th class="col-acciones"></th>
+                    </tr>
+                </thead>
+                <tbody id="partidas-body">
+                    {% if oferta and oferta.partidas.count() > 0 %}
+                    {% for partida in oferta.partidas.order_by('orden').all() %}
+                    <tr class="partida-row">
+                        <td><input type="text" name="partida_descripcion[]" value="{{ partida.descripcion }}"
+                                placeholder="Descripción del concepto" required></td>
+                        <td><input type="number" name="partida_precio[]" value="{{ partida.precio }}" step="0.01"
+                                min="0" placeholder="0.00" class="precio-input" required></td>
+                        <td><input type="number" name="partida_cantidad[]" value="{{ partida.cantidad }}" step="0.01"
+                                min="0.01" placeholder="1" class="cantidad-input" required></td>
+                        <td><input type="text" class="partida-total-input" value="{{ '%.2f'|format(partida.total) }} €"
+                                readonly></td>
+                        <td><button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button></td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr class="partida-row">
+                        <td><input type="text" name="partida_descripcion[]" placeholder="Descripción del concepto"
+                                required></td>
+                        <td><input type="number" name="partida_precio[]" step="0.01" min="0" placeholder="0.00"
+                                class="precio-input" required></td>
+                        <td><input type="number" name="partida_cantidad[]" step="0.01" min="0.01" value="1"
+                                placeholder="1" class="cantidad-input" required></td>
+                        <td><input type="text" class="partida-total-input" value="0.00 €" readonly></td>
+                        <td><button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button></td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <button type="button" class="btn-add-row" onclick="addRow()">➕ Añadir partida</button>
+
+            <!-- Resumen de totales -->
+            <div class="totals-summary">
+                <div class="totals-row">
+                    <span class="totals-label">Subtotal</span>
+                    <span class="totals-value" id="subtotal-display">0.00 €</span>
+                </div>
+                <div class="totals-row">
+                    <span class="totals-label">IVA (21%)</span>
+                    <span class="totals-value" id="iva-display">0.00 €</span>
+                </div>
+                <div class="totals-row">
+                    <span class="totals-label">TOTAL</span>
+                    <span class="totals-value" id="total-display">0.00 €</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: Método de pago -->
+        <div class="form-section">
+            <h3 class="section-title">💳 Forma de Pago</h3>
+
+            <div class="payment-methods">
+                <label class="payment-method-option">
+                    <input type="radio" name="forma_pago" value="efectivo" {% if (datos and datos.forma_pago=='efectivo'
+                        ) or (oferta and oferta.forma_pago=='efectivo' ) %}checked{% endif %}>
+                    <span>💵 Efectivo</span>
+                </label>
+
+                <label class="payment-method-option">
+                    <input type="radio" name="forma_pago" value="bizum" {% if (datos and datos.forma_pago=='bizum' ) or
+                        (oferta and oferta.forma_pago=='bizum' ) %}checked{% endif %}>
+                    <span>📱 Bizum</span>
+                </label>
+
+                <label class="payment-method-option">
+                    <input type="radio" name="forma_pago" value="transferencia" {% if (datos and
+                        datos.forma_pago=='transferencia' ) or (oferta and oferta.forma_pago=='transferencia' )
+                        %}checked{% endif %}>
+                    <span>🏦 Transferencia</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: Condiciones -->
+        <div class="conditions-box">
+            <h4>📋 Condiciones de Pago</h4>
+            <p>El importe del trabajo se abonará a la finalización del servicio.</p>
+            <p>Formas de pago aceptadas: efectivo, Bizum o transferencia bancaria.</p>
+            <p>En caso de transferencia, el pago deberá realizarse en un plazo máximo de 24 horas.</p>
+        </div>
+
+        <div class="conditions-box">
+            <h4>✅ Aceptación del Presupuesto</h4>
+            <p>El presupuesto deberá enviarse firmado para su aceptación.</p>
+            <p>Una vez agendada la cita, las cancelaciones deberán comunicarse con 24 h de antelación.</p>
+            <p>En caso contrario, se aplicará un cargo de 20 € por gastos ocasionados.</p>
+        </div>
+
+        <!-- SECCIÓN: Firma -->
+        <div class="signature-area">
+            <p style="color: #475569; font-size: 0.9rem;">Espacio reservado para la firma del cliente</p>
+            <div class="signature-line"></div>
+            <span class="signature-label">Firma del Cliente</span>
+        </div>
+
+        <!-- SECCIÓN: Botones -->
+        <div class="form-actions">
+            <a href="{{ url_for('ofertas.lista') }}" class="btn btn-secondary">← Cancelar</a>
+            <button type="submit" class="btn btn-primary">💾 {{ 'Actualizar' if oferta else 'Guardar' }} Oferta</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    const IVA_PORCENTAJE = 21;
+
+    function addRow() {
+        const tbody = document.getElementById('partidas-body');
+        const newRow = document.createElement('tr');
+        newRow.className = 'partida-row';
+        newRow.innerHTML = `
+            <td><input type="text" name="partida_descripcion[]" placeholder="Descripción del concepto" required></td>
+            <td><input type="number" name="partida_precio[]" step="0.01" min="0" placeholder="0.00" class="precio-input" required></td>
+            <td><input type="number" name="partida_cantidad[]" step="0.01" min="0.01" value="1" placeholder="1" class="cantidad-input" required></td>
+            <td><input type="text" class="partida-total-input" value="0.00 €" readonly></td>
+            <td><button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button></td>
+        `;
+        tbody.appendChild(newRow);
+        attachRowListeners(newRow);
+    }
+
+    function removeRow(button) {
+        const rows = document.querySelectorAll('.partida-row');
+        if (rows.length > 1) {
+            button.closest('tr').remove();
+            calculateTotals();
+        } else {
+            alert('Debe haber al menos una partida');
+        }
+    }
+
+    function attachRowListeners(row) {
+        const precioInput = row.querySelector('.precio-input');
+        const cantidadInput = row.querySelector('.cantidad-input');
+
+        precioInput.addEventListener('input', () => calculateRowTotal(row));
+        cantidadInput.addEventListener('input', () => calculateRowTotal(row));
+    }
+
+    function calculateRowTotal(row) {
+        const precio = parseFloat(row.querySelector('.precio-input').value) || 0;
+        const cantidad = parseFloat(row.querySelector('.cantidad-input').value) || 0;
+        const total = precio * cantidad;
+        row.querySelector('.partida-total-input').value = total.toFixed(2) + ' €';
+        calculateTotals();
+    }
+
+    function calculateTotals() {
+        let subtotal = 0;
+        document.querySelectorAll('.partida-row').forEach(row => {
+            const precio = parseFloat(row.querySelector('.precio-input').value) || 0;
+            const cantidad = parseFloat(row.querySelector('.cantidad-input').value) || 0;
+            subtotal += precio * cantidad;
+        });
+
+        const iva = subtotal * (IVA_PORCENTAJE / 100);
+        const total = subtotal + iva;
+
+        document.getElementById('subtotal-display').textContent = subtotal.toFixed(2) + ' €';
+        document.getElementById('iva-display').textContent = iva.toFixed(2) + ' €';
+        document.getElementById('total-display').textContent = total.toFixed(2) + ' €';
+    }
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.partida-row').forEach(row => {
+            attachRowListeners(row);
+            calculateRowTotal(row);
+        });
+    });
+</script>
+{% endblock %}

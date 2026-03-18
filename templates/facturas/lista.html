@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Facturas{% endblock %}
+{% block titulo_pagina %}Gestión de Facturas{% endblock %}
+
+{% block contenido %}
+<!-- SECCIÓN: Cabecera -->
+<div class="section-header">
+    <div class="section-info">
+        <p class="section-description">
+            Gestiona tus facturas. Total: <strong>{{ facturas|length }}</strong> factura{{ 's' if facturas|length != 1
+            else '' }}.
+        </p>
+    </div>
+
+    <!-- Barra de búsqueda y filtros -->
+    <div class="search-container">
+        <form action="{{ url_for('facturas.lista') }}" method="GET" class="search-form">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" name="q" value="{{ busqueda or '' }}" placeholder="Buscar por cliente o número..."
+                    class="search-input">
+                {% if busqueda %}
+                <a href="{{ url_for('facturas.lista') }}" class="search-clear" title="Limpiar">✕</a>
+                {% endif %}
+            </div>
+
+            <input type="date" name="fecha_desde" value="{{ fecha_desde or '' }}" class="filter-date">
+            <input type="date" name="fecha_hasta" value="{{ fecha_hasta or '' }}" class="filter-date">
+
+            <select name="forma_pago" class="filter-select">
+                <option value="">Todas las formas de pago</option>
+                <option value="efectivo" {% if forma_pago_filtro=='efectivo' %}selected{% endif %}>Efectivo</option>
+                <option value="bizum" {% if forma_pago_filtro=='bizum' %}selected{% endif %}>Bizum</option>
+                <option value="transferencia" {% if forma_pago_filtro=='transferencia' %}selected{% endif %}>
+                    Transferencia</option>
+            </select>
+
+            <button type="submit" class="btn btn-secondary">Filtrar</button>
+        </form>
+    </div>
+
+    <div class="section-actions">
+        <a href="{{ url_for('facturas.nueva') }}" class="btn btn-primary">
+            <span class="btn-icon">➕</span>
+            Nueva Factura
+        </a>
+    </div>
+</div>
+
+<!-- SECCIÓN: Tabla de facturas -->
+{% if facturas %}
+<div class="table-container">
+    <table class="data-table" id="tabla-facturas">
+        <thead>
+            <tr>
+                <th>Número</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Total</th>
+                <th>Origen</th>
+                <th>Pago</th>
+                <th class="actions-column">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for factura in facturas %}
+            <tr>
+                <!-- Número -->
+                <td>
+                    <span class="factura-code">{{ factura.numero }}</span>
+                </td>
+
+                <!-- Cliente -->
+                <td>
+                    <div class="client-name">
+                        <span class="name-initial">{{ factura.cliente.nombre[0] }}{{ factura.cliente.apellido[0]
+                            }}</span>
+                        <span>{{ factura.cliente.nombre }} {{ factura.cliente.apellido }}</span>
+                    </div>
+                </td>
+
+                <!-- Fecha -->
+                <td>{{ factura.fecha.strftime('%d/%m/%Y') }}</td>
+
+                <!-- Total -->
+                <td>
+                    <span class="amount">{{ "%.2f"|format(factura.total) }} €</span>
+                </td>
+
+                <!-- Origen -->
+                <td>
+                    <span class="badge badge-{{ factura.origen }}">
+                        {% if factura.origen == 'oferta' %}📝{% elif factura.origen == 'parte' %}🔧{% else %}✍️{% endif
+                        %}
+                        {{ factura.origen_detalle }}
+                    </span>
+                </td>
+
+                <!-- Forma de pago -->
+                <td>
+                    <span class="payment-badge">
+                        {% if factura.forma_pago == 'efectivo' %}💵{% elif factura.forma_pago == 'bizum' %}📱{% else
+                        %}🏦{% endif %}
+                        {{ factura.forma_pago|capitalize }}
+                    </span>
+                </td>
+
+                <!-- Acciones -->
+                <td class="actions-column">
+                    <div class="action-buttons">
+                        <!-- PDF -->
+                        <a href="{{ url_for('facturas.generar_pdf', id=factura.id) }}" class="btn btn-small btn-pdf"
+                            title="Descargar PDF" target="_blank">
+                            📄
+                        </a>
+
+                        <!-- Editar -->
+                        <a href="{{ url_for('facturas.editar', id=factura.id) }}" class="btn btn-small btn-edit"
+                            title="Editar">
+                            ✏️
+                        </a>
+
+                        <!-- Eliminar -->
+                        <form action="{{ url_for('facturas.eliminar', id=factura.id) }}" method="POST"
+                            class="delete-form" data-nombre="Factura {{ factura.numero }}">
+                            <button type="submit" class="btn btn-small btn-delete" title="Eliminar">
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<!-- Estado vacío -->
+<div class="empty-state">
+    <div class="empty-icon">📄</div>
+    <h3>No hay facturas registradas</h3>
+    <p>Comienza creando tu primera factura.</p>
+    <a href="{{ url_for('facturas.nueva') }}" class="btn btn-primary btn-large">
+        ➕ Crear primera factura
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteForms = document.querySelectorAll('.delete-form');
+
+        deleteForms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const nombre = this.dataset.nombre;
+                if (!confirm(`¿Estás seguro de eliminar ${nombre}?`)) {
+                    e.preventDefault();
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

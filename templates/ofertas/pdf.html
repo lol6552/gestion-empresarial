@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root {
+            --primary-blue: #1a334d;
+            --dark-grey: #333333;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+            /* Playwright manejará los márgenes */
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: var(--dark-grey);
+            margin: 0;
+            padding: 1.5cm;
+            line-height: 1.4;
+        }
+
+        /* --- CABECERA SUPERIOR --- */
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-circle {
+            background-color: var(--primary-blue);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+        }
+
+        .brand-text h1 {
+            margin: 0;
+            font-size: 16pt;
+            letter-spacing: 0.5px;
+            color: #000;
+        }
+
+        .brand-text p {
+            margin: 0;
+            font-size: 9pt;
+            color: #555;
+        }
+
+        .contact-icons {
+            display: flex;
+            gap: 15px;
+            font-size: 9pt;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* --- BANNER AZUL (CLIENTE Y TITULO) --- */
+        .banner {
+            background-color: var(--primary-blue);
+            color: white;
+            display: flex;
+            padding: 30px;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-radius: 2px;
+            margin-bottom: 30px;
+        }
+
+        .client-info {
+            font-size: 10pt;
+        }
+
+        .client-info .label {
+            font-size: 8pt;
+            color: #a0aec0;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .client-info b {
+            font-size: 12pt;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .budget-title {
+            text-align: right;
+        }
+
+        .budget-title h2 {
+            font-size: 32pt;
+            margin: 0;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .budget-meta {
+            margin-top: 10px;
+            font-size: 10pt;
+        }
+
+        /* --- TABLA DE ARTÍCULOS --- */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .items-table th {
+            background-color: var(--dark-grey);
+            color: white;
+            padding: 12px 10px;
+            font-size: 9pt;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .items-table th:first-child {
+            text-align: left;
+        }
+
+        .items-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 10pt;
+            min-height: 40px;
+        }
+
+        .col-desc {
+            width: 50%;
+        }
+
+        .col-price,
+        .col-qty,
+        .col-total {
+            width: 16%;
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right !important;
+        }
+
+        /* Filas vacías para estética */
+        .empty-row td {
+            height: 40px;
+        }
+
+        /* --- RESUMEN Y PAGO --- */
+        .summary-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .payment-info {
+            width: 55%;
+        }
+
+        .totals-box {
+            width: 35%;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+
+        .total-row.grand-total {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 10px;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 12pt;
+        }
+
+        /* --- TÉRMINOS Y FIRMA --- */
+        .terms {
+            margin-top: 30px;
+            font-size: 8.5pt;
+            color: #444;
+            text-align: justify;
+        }
+
+        .section-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+            color: #000;
+        }
+
+        .footer-signature {
+            margin-top: 50px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .signature-wrap {
+            text-align: center;
+            width: 250px;
+        }
+
+        .signature-line {
+            border-top: 1px solid black;
+            padding-top: 8px;
+            font-weight: bold;
+            font-size: 9pt;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header-top">
+        <div class="brand">
+            <div class="logo-circle">⚡</div>
+            <div class="brand-text">
+                <h1>{{ autonomo.nombre }}</h1>
+                <p>{{ autonomo.profesion }}</p>
+            </div>
+        </div>
+        <div class="contact-icons">
+            <div class="contact-item">📞 {{ autonomo.telefono }}</div>
+            <div class="contact-item">✉️ {{ autonomo.email }}</div>
+            <div class="contact-item">📍 {{ autonomo.direccion }}</div>
+        </div>
+    </header>
+
+    <section class="banner">
+        <div class="client-info">
+            <span class="label">CLIENTE</span>
+            <b>{{ oferta.cliente.nombre }} {{ oferta.cliente.apellido }}</b>
+            {{ oferta.cliente.dni }}<br>
+            {{ oferta.cliente.direccion }}<br>
+            {{ oferta.cliente.codigo_postal }} {{ oferta.cliente.localidad }}
+        </div>
+        <div class="budget-title">
+            <h2>PRESUPUESTO</h2>
+            <div class="budget-meta">
+                Nº OFERTA: <b>{{ oferta.numero }}</b><br>
+                FECHA: <b>{{ oferta.fecha.strftime('%d/%m/%Y') }}</b>
+            </div>
+        </div>
+    </section>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th class="col-desc">Descripción del Artículo</th>
+                <th class="col-price">Precio Unitario</th>
+                <th class="col-qty">Cantidad</th>
+                <th class="col-total">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for partida in partidas %}
+            <tr>
+                <td>{{ partida.descripcion }}</td>
+                <td class="text-center">{{ "%.2f"|format(partida.precio) }} €</td>
+                <td class="text-center">{{ "%.2f"|format(partida.cantidad) }}</td>
+                <td class="text-right">{{ "%.2f"|format(partida.total) }} €</td>
+            </tr>
+            {% endfor %}
+            <!-- Filas vacías opcionales -->
+            {% if partidas|length < 5 %} {% for i in range(5 - partidas|length) %} <tr class="empty-row">
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+        </tbody>
+    </table>
+
+    <div class="summary-container">
+        <div class="payment-info">
+            <span class="section-label">Forma de Pago Aceptada</span>
+            <p style="font-size: 9pt; margin: 0;">
+                Transferencia: {{ autonomo.cuenta_bancaria }}<br>
+                Bizum, Efectivo
+            </p>
+
+            <div class="terms">
+                <span class="section-label">Términos y Condiciones</span>
+                El importe del trabajo se abonará a la finalización del servicio. Formas de pago aceptadas: efectivo,
+                Bizum o transferencia bancaria. En caso de transferencia, el pago deberá realizarse en un plazo máximo
+                de 24 horas. El presupuesto deberá enviarse firmado para su aceptación. Una vez agendada la cita, las
+                cancelaciones deberán comunicarse con 24 h de antelación. En caso contrario, se aplicará un cargo de 20
+                € por gastos ocasionados.
+            </div>
+        </div>
+
+        <div class="totals-box">
+            <div class="total-row">
+                <span>Subtotal</span>
+                <span>{{ "%.2f"|format(oferta.subtotal) }} €</span>
+            </div>
+            <div class="total-row">
+                <span>I.V.A. {{ iva_porcentaje }}%</span>
+                <span>{{ "%.2f"|format(oferta.iva) }} €</span>
+            </div>
+            <div class="total-row grand-total">
+                <span>TOTAL GENERAL</span>
+                <span>{{ "%.2f"|format(oferta.total) }} €</span>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer-signature">
+        <div class="signature-wrap">
+            <div style="height: 60px; display: flex; align-items: flex-end; justify-content: center;">
+                {% if url_firma %}
+                <img src="{{ url_firma }}" alt="Firma" style="max-height: 80px; max-width: 100%;">
+                {% else %}
+                <div style="height: 60px;"></div>
+                {% endif %}
+            </div>
+            <div class="signature-line">
+                {{ autonomo.nombre }}<br>
+                <span style="font-weight: normal; font-size: 8pt;">{{ autonomo.profesion }}</span>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>

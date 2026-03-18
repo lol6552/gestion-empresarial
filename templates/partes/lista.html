@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Partes de Trabajo{% endblock %}
+{% block titulo_pagina %}Gestión de Partes de Trabajo{% endblock %}
+
+{% block contenido %}
+<!-- SECCIÓN: Cabecera con botón de nuevo parte -->
+<div class="section-header">
+    <div class="section-info">
+        <p class="section-description">
+            Gestiona tus partes de trabajo. Total: <strong>{{ partes|length }}</strong> parte{{ 's' if partes|length !=
+            1 else '' }}.
+        </p>
+    </div>
+
+    <!-- Barra de búsqueda y filtros -->
+    <div class="search-container">
+        <form action="{{ url_for('partes.lista') }}" method="GET" class="search-form">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" name="q" value="{{ busqueda or '' }}" placeholder="Buscar por cliente o número..."
+                    class="search-input">
+                {% if busqueda %}
+                <a href="{{ url_for('partes.lista') }}" class="search-clear" title="Limpiar búsqueda">✕</a>
+                {% endif %}
+            </div>
+
+            <!-- Filtros de fecha -->
+            <input type="date" name="fecha_desde" value="{{ fecha_desde or '' }}" class="filter-date"
+                placeholder="Desde">
+            <input type="date" name="fecha_hasta" value="{{ fecha_hasta or '' }}" class="filter-date"
+                placeholder="Hasta">
+
+            <button type="submit" class="btn btn-secondary">Filtrar</button>
+        </form>
+    </div>
+
+    <div class="section-actions">
+        <a href="{{ url_for('partes.nuevo') }}" class="btn btn-primary">
+            <span class="btn-icon">➕</span>
+            Nuevo Parte
+        </a>
+    </div>
+</div>
+
+<!-- SECCIÓN: Tabla de partes -->
+{% if partes %}
+<div class="table-container">
+    <table class="data-table" id="tabla-partes">
+        <thead>
+            <tr>
+                <th>Número</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Horas</th>
+                <th>Total</th>
+                <th>Extras</th>
+                <th class="actions-column">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for parte in partes %}
+            <tr>
+                <!-- Número de parte -->
+                <td>
+                    <span class="parte-code">{{ parte.numero }}</span>
+                </td>
+
+                <!-- Nombre del cliente -->
+                <td>
+                    <div class="client-name">
+                        <span class="name-initial">{{ parte.cliente.nombre[0] }}{{ parte.cliente.apellido[0] }}</span>
+                        <span>{{ parte.cliente.nombre }} {{ parte.cliente.apellido }}</span>
+                    </div>
+                </td>
+
+                <!-- Fecha -->
+                <td>{{ parte.fecha_realizacion.strftime('%d/%m/%Y') }}</td>
+
+                <!-- Horas de trabajo -->
+                <td>
+                    <span class="hours-badge">{{ "%.2f"|format(parte.horas_trabajo) }}h</span>
+                </td>
+
+                <!-- Total -->
+                <td>
+                    <span class="amount">{{ "%.2f"|format(parte.total) }} €</span>
+                </td>
+
+                <!-- Indicadores extras -->
+                <td>
+                    <div class="extras-badges">
+                        {% if parte.incluye_desplazamiento %}
+                        <span class="badge badge-info" title="Incluye desplazamiento">🚗</span>
+                        {% endif %}
+                        {% if parte.incluye_materiales %}
+                        <span class="badge badge-info" title="Incluye materiales">🔧</span>
+                        {% endif %}
+                    </div>
+                </td>
+
+                <!-- Acciones -->
+                <td class="actions-column">
+                    <div class="action-buttons">
+                        <!-- Botón PDF -->
+                        <a href="{{ url_for('partes.generar_pdf', id=parte.id) }}" class="btn btn-small btn-pdf"
+                            title="Descargar PDF" target="_blank">
+                            📄
+                        </a>
+
+                        <!-- Botón Facturar -->
+                        <a href="{{ url_for('facturas.desde_parte', parte_id=parte.id) }}"
+                            class="btn btn-small btn-invoice" title="Crear Factura">
+                            💶
+                        </a>
+
+                        <!-- Botón Editar -->
+                        <a href="{{ url_for('partes.editar', id=parte.id) }}" class="btn btn-small btn-edit"
+                            title="Editar parte">
+                            ✏️
+                        </a>
+
+                        <!-- Botón Eliminar -->
+                        <form action="{{ url_for('partes.eliminar', id=parte.id) }}" method="POST" class="delete-form"
+                            data-nombre="Parte {{ parte.numero }}">
+                            <button type="submit" class="btn btn-small btn-delete" title="Eliminar parte" {% if
+                                parte.facturas.count()> 0 %}disabled{% endif %}>
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<!-- Mensaje cuando no hay partes -->
+<div class="empty-state">
+    <div class="empty-icon">🔧</div>
+    <h3>No hay partes de trabajo registrados</h3>
+    <p>Comienza creando tu primer parte de trabajo.</p>
+    <a href="{{ url_for('partes.nuevo') }}" class="btn btn-primary btn-large">
+        ➕ Crear primer parte
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteForms = document.querySelectorAll('.delete-form');
+
+        deleteForms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const nombre = this.dataset.nombre;
+                const mensaje = `¿Estás seguro de eliminar ${nombre}?`;
+
+                if (!confirm(mensaje)) {
+                    e.preventDefault();
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

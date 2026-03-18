@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block titulo %}{% if cliente %}Editar Cliente{% else %}Nuevo Cliente{% endif %}{% endblock %}
+{% block titulo_pagina %}{% if cliente %}Editar Cliente{% else %}Nuevo Cliente{% endif %}{% endblock %}
+
+{% block contenido %}
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Navegación de migas de pan -->
+<!-- ====================================================================== -->
+<div class="breadcrumb">
+    <a href="{{ url_for('clientes.lista') }}">← Volver a la lista</a>
+</div>
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Formulario de cliente -->
+<!-- ====================================================================== -->
+<div class="form-container">
+    <form method="POST" class="cliente-form" id="formulario-cliente">
+
+        <!-- ============================================================== -->
+        <!-- GRUPO: Datos personales -->
+        <!-- ============================================================== -->
+        <fieldset class="form-section">
+            <legend>Datos Personales</legend>
+
+            <div class="form-row">
+                <!-- Campo: Nombre -->
+                <div class="form-group">
+                    <label for="nombre">Nombre *</label>
+                    <input type="text" id="nombre" name="nombre"
+                        value="{{ datos.nombre if datos else (cliente.nombre if cliente else '') }}"
+                        placeholder="Ej: Juan" required maxlength="100">
+                </div>
+
+                <!-- Campo: Apellido -->
+                <div class="form-group">
+                    <label for="apellido">Apellido *</label>
+                    <input type="text" id="apellido" name="apellido"
+                        value="{{ datos.apellido if datos else (cliente.apellido if cliente else '') }}"
+                        placeholder="Ej: Pérez García" required maxlength="100">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <!-- Campo: DNI -->
+                <div class="form-group">
+                    <label for="dni">DNI/NIE *</label>
+                    <input type="text" id="dni" name="dni"
+                        value="{{ datos.dni if datos else (cliente.dni if cliente else '') }}"
+                        placeholder="Ej: 12345678A" required maxlength="20" pattern="[0-9A-Za-z]{8,12}">
+                    <span class="form-hint">El DNI debe ser único para cada cliente</span>
+                </div>
+
+                <!-- Campo: Teléfono -->
+                <div class="form-group">
+                    <label for="telefono">Teléfono *</label>
+                    <input type="tel" id="telefono" name="telefono"
+                        value="{{ datos.telefono if datos else (cliente.telefono if cliente else '') }}"
+                        placeholder="Ej: 612345678" required maxlength="20">
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- ============================================================== -->
+        <!-- GRUPO: Dirección -->
+        <!-- ============================================================== -->
+        <fieldset class="form-section">
+            <legend>Dirección</legend>
+
+            <!-- Campo: Dirección completa -->
+            <div class="form-group full-width">
+                <label for="direccion">Dirección *</label>
+                <input type="text" id="direccion" name="direccion"
+                    value="{{ datos.direccion if datos else (cliente.direccion if cliente else '') }}"
+                    placeholder="Ej: C/ Mayor 15, 2ºB" required maxlength="200">
+            </div>
+
+            <div class="form-row">
+                <!-- Campo: Código Postal -->
+                <div class="form-group">
+                    <label for="codigo_postal">Código Postal *</label>
+                    <input type="text" id="codigo_postal" name="codigo_postal"
+                        value="{{ datos.codigo_postal if datos else (cliente.codigo_postal if cliente else '') }}"
+                        placeholder="Ej: 28001" required maxlength="10" pattern="[0-9]{5}">
+                </div>
+
+                <!-- Campo: Localidad -->
+                <div class="form-group">
+                    <label for="localidad">Localidad *</label>
+                    <input type="text" id="localidad" name="localidad"
+                        value="{{ datos.localidad if datos else (cliente.localidad if cliente else '') }}"
+                        placeholder="Ej: Madrid" required maxlength="100">
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- ============================================================== -->
+        <!-- GRUPO: Trabajo -->
+        <!-- ============================================================== -->
+        <fieldset class="form-section">
+            <legend>Información del Trabajo</legend>
+
+            <!-- Campo: Trabajo a realizar -->
+            <div class="form-group full-width">
+                <label for="trabajo_a_realizar">Trabajo a Realizar</label>
+                <textarea id="trabajo_a_realizar" name="trabajo_a_realizar"
+                    placeholder="Describe el trabajo que el cliente necesita..."
+                    rows="4">{{ datos.trabajo_a_realizar if datos else (cliente.trabajo_a_realizar if cliente else '') }}</textarea>
+                <span class="form-hint">Este campo es opcional. Puedes describirlo después.</span>
+            </div>
+        </fieldset>
+
+        <!-- ============================================================== -->
+        <!-- BOTONES DE ACCIÓN -->
+        <!-- ============================================================== -->
+        <div class="form-actions">
+            <a href="{{ url_for('clientes.lista') }}" class="btn btn-secondary">
+                Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <span class="btn-icon">💾</span>
+                {% if cliente %}Guardar Cambios{% else %}Guardar Cliente{% endif %}
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Información adicional (solo en edición) -->
+<!-- ====================================================================== -->
+{% if cliente %}
+<div class="client-metadata">
+    <p>
+        <strong>ID:</strong> {{ cliente.id }} |
+        <strong>Registrado:</strong> {{ cliente.fecha_creacion.strftime('%d/%m/%Y %H:%M') }}
+        {% if cliente.tiene_documentos %}
+        | <span class="has-documents">⚠️ Este cliente tiene documentos asociados</span>
+        {% endif %}
+    </p>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+
+{% block titulo %}{{ 'Editar Factura' if factura else 'Nueva Factura' }}{% endblock %}
+{% block titulo_pagina %}{{ 'Editar Factura ' ~ factura.numero if factura else 'Nueva Factura' }}{% endblock %}
+
+{% block estilos_extra %}
+<style>
+    .origen-badge {
+        display: inline-block;
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Tabla de conceptos */
+    .partidas-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    .partidas-table th {
+        background: linear-gradient(135deg, #059669, #047857);
+        color: white;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .partidas-table td {
+        padding: 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .partidas-table input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    .partidas-table input:focus {
+        outline: none;
+        border-color: #059669;
+        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+    }
+
+    .partidas-table .col-descripcion {
+        width: 50%;
+    }
+
+    .partidas-table .col-cantidad {
+        width: 15%;
+    }
+
+    .partidas-table .col-precio {
+        width: 15%;
+    }
+
+    .partidas-table .col-total {
+        width: 15%;
+    }
+
+    .partidas-table .col-acciones {
+        width: 5%;
+    }
+
+    .partida-total-input {
+        background: #f1f5f9;
+        font-weight: 600;
+    }
+
+    .btn-add-row {
+        margin-top: 1rem;
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .btn-add-row:hover {
+        background: #059669;
+    }
+
+    .btn-remove-row {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+    }
+
+    .btn-remove-row:hover {
+        background: #dc2626;
+    }
+
+    /* Totales */
+    .totals-box {
+        background: linear-gradient(135deg, #059669, #047857);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-top: 1rem;
+        max-width: 350px;
+        margin-left: auto;
+    }
+
+    .totals-box .totals-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .totals-box .totals-row:last-child {
+        border-bottom: none;
+        font-size: 1.2rem;
+        font-weight: 700;
+        padding-top: 1rem;
+    }
+
+    .payment-methods {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+
+    .payment-method-option {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .payment-method-option:hover,
+    .payment-method-option:has(input:checked) {
+        border-color: #059669;
+        background: #d1fae5;
+    }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="form-container">
+    <form
+        action="{% if factura %}{{ url_for('facturas.editar', id=factura.id) }}{% elif origen and origen.tipo == 'oferta' %}{{ url_for('facturas.desde_oferta', oferta_id=origen.id) }}{% elif origen and origen.tipo == 'parte' %}{{ url_for('facturas.desde_parte', parte_id=origen.id) }}{% else %}{{ url_for('facturas.nueva') }}{% endif %}"
+        method="POST" class="main-form" id="factura-form">
+
+        {% if origen %}
+        <div class="origen-badge">
+            {% if origen.tipo == 'oferta' %}📝 Facturando desde: {{ origen.numero }}
+            {% elif origen.tipo == 'parte' %}🔧 Facturando desde: {{ origen.numero }}
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- SECCIÓN: Información básica -->
+        <div class="form-section">
+            <h3 class="section-title">📋 Información de la Factura</h3>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fecha">Fecha *</label>
+                    <input type="date" id="fecha" name="fecha"
+                        value="{{ datos.fecha if datos else (factura.fecha.strftime('%Y-%m-%d') if factura else fecha_hoy) }}"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="cliente_id">Cliente *</label>
+                    <select id="cliente_id" name="cliente_id" required>
+                        <option value="">-- Seleccionar cliente --</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}" {% if (datos and datos.cliente_id|string==cliente.id|string) or
+                            (factura and factura.cliente_id==cliente.id) %}selected{% endif %}>
+                            {{ cliente.apellido }}, {{ cliente.nombre }} ({{ cliente.dni }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="descripcion">Notas / Observaciones</label>
+                <textarea id="descripcion" name="descripcion" rows="2"
+                    placeholder="Notas adicionales (opcional)...">{{ datos.descripcion if datos else (factura.descripcion if factura else '') }}</textarea>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: Conceptos/Materiales (tabla dinámica) -->
+        <div class="form-section">
+            <h3 class="section-title">📝 Conceptos / Materiales</h3>
+
+            <table class="partidas-table" id="partidas-table">
+                <thead>
+                    <tr>
+                        <th class="col-descripcion">CONCEPTO / MATERIAL</th>
+                        <th class="col-cantidad">CANTIDAD</th>
+                        <th class="col-precio">PRECIO UN.</th>
+                        <th class="col-total">TOTAL</th>
+                        <th class="col-acciones"></th>
+                    </tr>
+                </thead>
+                <tbody id="partidas-body">
+                    {% if factura and partidas_existentes %}
+                    {% for partida in partidas_existentes %}
+                    <tr class="partida-row">
+                        <td><input type="text" name="partida_descripcion[]" value="{{ partida.descripcion }}"
+                                placeholder="Descripción"></td>
+                        <td><input type="number" name="partida_cantidad[]" value="{{ partida.cantidad }}" step="0.01"
+                                min="0.01" class="cantidad-input"></td>
+                        <td><input type="number" name="partida_precio[]" value="{{ partida.precio }}" step="0.01"
+                                min="0" class="precio-input"></td>
+                        <td><input type="text" class="partida-total-input" value="{{ '%.2f'|format(partida.total) }} €"
+                                readonly></td>
+                        <td><button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button></td>
+                    </tr>
+                    {% endfor %}
+                    {% elif partidas_precargadas %}
+                    {% for partida in partidas_precargadas %}
+                    <tr class="partida-row">
+                        <td><input type="text" name="partida_descripcion[]" value="{{ partida.descripcion }}"
+                                placeholder="Descripción"></td>
+                        <td><input type="number" name="partida_cantidad[]" value="{{ partida.cantidad }}" step="0.01"
+                                min="0.01" class="cantidad-input"></td>
+                        <td><input type="number" name="partida_precio[]" value="{{ partida.precio }}" step="0.01"
+                                min="0" class="precio-input"></td>
+                        <td><input type="text" class="partida-total-input" value="{{ partida.total }} €" readonly></td>
+                        <td><button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button></td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr class="partida-row">
+                        <td><input type="text" name="partida_descripcion[]" placeholder="Descripción del concepto"></td>
+                        <td><input type="number" name="partida_cantidad[]" step="0.01" min="0.01" value="1"
+                                class="cantidad-input"></td>
+                        <td><input type="number" name="partida_precio[]" step="0.01" min="0" placeholder="0.00"
+                                class="precio-input"></td>
+                        <td><input type="text" class="partida-total-input" value="0.00 €" readonly></td>
+                        <td><button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button></td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <button type="button" class="btn-add-row" onclick="addRow()">➕ Añadir concepto</button>
+
+            <!-- Totales -->
+            <div class="totals-box">
+                <div class="totals-row">
+                    <span>Subtotal</span>
+                    <span id="subtotal-display">0.00 €</span>
+                </div>
+                <div class="totals-row">
+                    <span>IVA (21%)</span>
+                    <span id="iva-display">0.00 €</span>
+                </div>
+                <div class="totals-row">
+                    <span>TOTAL</span>
+                    <span id="total-display">0.00 €</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: Forma de Pago -->
+        <div class="form-section">
+            <h3 class="section-title">💳 Forma de Pago *</h3>
+
+            <div class="payment-methods">
+                <label class="payment-method-option">
+                    <input type="radio" name="forma_pago" value="efectivo" required {% if (datos and
+                        datos.forma_pago=='efectivo' ) or (factura and factura.forma_pago=='efectivo' ) %}checked{%
+                        endif %}>
+                    <span>💵 Efectivo</span>
+                </label>
+                <label class="payment-method-option">
+                    <input type="radio" name="forma_pago" value="bizum" {% if (datos and datos.forma_pago=='bizum' ) or
+                        (factura and factura.forma_pago=='bizum' ) %}checked{% endif %}>
+                    <span>📱 Bizum</span>
+                </label>
+                <label class="payment-method-option">
+                    <input type="radio" name="forma_pago" value="transferencia" {% if (datos and
+                        datos.forma_pago=='transferencia' ) or (factura and factura.forma_pago=='transferencia' )
+                        %}checked{% endif %}>
+                    <span>🏦 Transferencia</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="form-actions">
+            <a href="{{ url_for('facturas.lista') }}" class="btn btn-secondary">← Cancelar</a>
+            <button type="submit" class="btn btn-primary">💾 {{ 'Actualizar' if factura else 'Guardar' }}
+                Factura</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    const IVA_PORCENTAJE = 21;
+
+    function addRow() {
+        const tbody = document.getElementById('partidas-body');
+        const newRow = document.createElement('tr');
+        newRow.className = 'partida-row';
+        newRow.innerHTML = `
+            <td><input type="text" name="partida_descripcion[]" placeholder="Descripción del concepto"></td>
+            <td><input type="number" name="partida_cantidad[]" step="0.01" min="0.01" value="1" class="cantidad-input"></td>
+            <td><input type="number" name="partida_precio[]" step="0.01" min="0" placeholder="0.00" class="precio-input"></td>
+            <td><input type="text" class="partida-total-input" value="0.00 €" readonly></td>
+            <td><button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button></td>
+        `;
+        tbody.appendChild(newRow);
+        attachRowListeners(newRow);
+    }
+
+    function removeRow(button) {
+        const rows = document.querySelectorAll('.partida-row');
+        if (rows.length > 1) {
+            button.closest('tr').remove();
+            calcularTotales();
+        }
+    }
+
+    function attachRowListeners(row) {
+        const cantidadInput = row.querySelector('.cantidad-input');
+        const precioInput = row.querySelector('.precio-input');
+
+        if (cantidadInput) cantidadInput.addEventListener('input', () => {
+            calculateRowTotal(row);
+            calcularTotales();
+        });
+        if (precioInput) precioInput.addEventListener('input', () => {
+            calculateRowTotal(row);
+            calcularTotales();
+        });
+    }
+
+    function calculateRowTotal(row) {
+        const cantidad = parseFloat(row.querySelector('.cantidad-input').value) || 0;
+        const precio = parseFloat(row.querySelector('.precio-input').value) || 0;
+        const total = cantidad * precio;
+        row.querySelector('.partida-total-input').value = total.toFixed(2) + ' €';
+    }
+
+    function calcularTotales() {
+        let subtotal = 0;
+        document.querySelectorAll('.partida-row').forEach(row => {
+            const cantidad = parseFloat(row.querySelector('.cantidad-input').value) || 0;
+            const precio = parseFloat(row.querySelector('.precio-input').value) || 0;
+            subtotal += cantidad * precio;
+        });
+
+        const iva = subtotal * (IVA_PORCENTAJE / 100);
+        const total = subtotal + iva;
+
+        document.getElementById('subtotal-display').textContent = subtotal.toFixed(2) + ' €';
+        document.getElementById('iva-display').textContent = iva.toFixed(2) + ' €';
+        document.getElementById('total-display').textContent = total.toFixed(2) + ' €';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.partida-row').forEach(row => {
+            attachRowListeners(row);
+            calculateRowTotal(row);
+        });
+
+        calcularTotales();
+    });
+</script>
+{% endblock %}

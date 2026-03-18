@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Parte de Trabajo {{ parte.numero }}</title>
+    <style>
+        /* Esto asegura que los colores se vean al imprimir a PDF */
+        * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.2;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* COLORES Y ESTILOS GENERALES */
+        .text-blue {
+            color: #4f5b6d;
+        }
+
+        .bg-blue {
+            background-color: #5b6d8a;
+            color: white;
+        }
+
+        .bg-light-grey {
+            background-color: #f2f2f2;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        /* ENCABEZADO */
+        .header-table td {
+            vertical-align: top;
+        }
+
+        .logo-circle {
+            background-color: #5b6d8a;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 30px;
+            line-height: 50px;
+            display: inline-block;
+        }
+
+        .company-name {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #4f5b6d;
+        }
+
+        .title-huge {
+            font-size: 22pt;
+            font-weight: bold;
+            color: #5b6d8a;
+            text-align: right;
+        }
+
+        /* BLOQUES DE DATOS */
+        .section-header {
+            padding: 6px 10px;
+            font-weight: bold;
+            font-size: 11pt;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .data-box {
+            border: 1px solid #ccc;
+            min-height: 100px;
+        }
+
+        .field-row {
+            border-bottom: 1px solid #eee;
+            display: table;
+            width: 100%;
+        }
+
+        .field-label {
+            display: table-cell;
+            width: 100px;
+            padding: 5px;
+            background-color: #f9f9f9;
+            font-size: 9pt;
+            color: #666;
+            border-right: 1px solid #eee;
+        }
+
+        .field-value {
+            display: table-cell;
+            padding: 5px 10px;
+            font-size: 10pt;
+        }
+
+        /* TABLA DE CONCEPTOS */
+        .items-table th {
+            background-color: #5b6d8a;
+            color: white;
+            padding: 8px;
+            font-size: 10pt;
+            text-align: center;
+        }
+
+        .items-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 10pt;
+        }
+
+        .items-table .text-right {
+            text-align: right;
+        }
+
+        .items-table .text-center {
+            text-align: center;
+        }
+
+        /* TOTALES */
+        .totals-table td {
+            padding: 5px;
+            font-size: 11pt;
+        }
+
+        .total-row {
+            background-color: #5b6d8a;
+            color: white;
+            font-weight: bold;
+            font-size: 14pt !important;
+        }
+
+        /* FORMA DE PAGO */
+        .checkbox-container {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: inline-block;
+            margin-right: 20px;
+            font-size: 10pt;
+        }
+
+        .square {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 1px solid #333;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        /* FIRMAS */
+        .signature-section {
+            margin-top: 30px;
+        }
+
+        .signature-box {
+            border-top: 1px dotted #333;
+            width: 80%;
+            margin: 0 auto;
+            text-align: center;
+            padding-top: 5px;
+            font-size: 10pt;
+            font-weight: bold;
+        }
+
+        .disclaimer {
+            font-size: 8pt;
+            color: #555;
+            font-style: italic;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <table class="header-table">
+        <tr>
+            <td width="60%">
+                <div style="display: flex; align-items: center;">
+                    <span class="logo-circle">⚡</span>
+                    <div style="display: inline-block; margin-left: 10px; vertical-align: top;">
+                        <span class="company-name">{{ autonomo.nombre }} - Electricista</span><br>
+                        <small>Electricista Pequeños arreglos</small><br>
+                        <small>D.N.I: {{ autonomo.dni }}</small><br>
+                        <small>{{ autonomo.direccion }}</small>
+                    </div>
+                </div>
+            </td>
+            <td width="40%">
+                <div class="title-huge">PARTE DE TRABAJO</div>
+                <div style="text-align: right; font-size: 12pt; margin-top: 10px;">
+                    <strong>Nº Parte:</strong> {{ parte.numero.replace('PARTE-', '') }}<br>
+                    <strong>Fecha:</strong> {{ parte.fecha_realizacion.strftime('%d/%m/%Y') }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <table>
+        <tr>
+            <td width="48%" valign="top">
+                <div class="section-header bg-blue">👤 Datos del CLIENTE</div>
+                <div class="data-box">
+                    <div class="field-row">
+                        <div class="field-label">Nombre</div>
+                        <div class="field-value">{{ parte.cliente.nombre }} {{ parte.cliente.apellido }}</div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label">D.N.I.</div>
+                        <div class="field-value">{{ parte.cliente.dni }}</div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label">Dirección</div>
+                        <div class="field-value">{{ parte.cliente.direccion }}</div>
+                    </div>
+                    <div class="field-row">
+                        <div class="field-label">Ciudad</div>
+                        <div class="field-value">{{ parte.cliente.codigo_postal }} {{ parte.cliente.localidad }}</div>
+                    </div>
+                </div>
+            </td>
+            <td width="4%">&nbsp;</td>
+            <td width="48%" valign="top">
+                <div class="section-header bg-blue">📝 Descripción de la Avería</div>
+                <div class="data-box" style="padding: 10px; min-height: 40px;">
+                    {{ parte.descripcion or 'Sin descripción' }}
+                </div>
+
+                <div class="section-header bg-blue" style="margin-top: 10px;">📍 Dirección del Servicio</div>
+                <div class="data-box">
+                    <div class="field-row">
+                        <div class="field-label">Dirección</div>
+                        <div class="field-value">{{ parte.cliente.direccion }}</div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th width="50%" align="left">Concepto / Material</th>
+                <th width="15%">Cantidad</th>
+                <th width="15%">Precio Un.</th>
+                <th width="20%">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Mano de obra ({{ "%.2f"|format(parte.horas_trabajo) }}h)</td>
+                <td class="text-center">{{ "%.2f"|format(parte.horas_trabajo) }}</td>
+                <td class="text-center">{{ "%.2f"|format(parte.precio_hora_trabajo) }} €</td>
+                <td class="text-right">{{ "%.2f"|format(parte.subtotal_trabajo) }} €</td>
+            </tr>
+            {% if parte.incluye_desplazamiento %}
+            <tr>
+                <td>Desplazamiento</td>
+                <td class="text-center">{{ "%.2f"|format(parte.horas_desplazamiento) }}</td>
+                <td class="text-center">{{ "%.2f"|format(parte.precio_hora_desplazamiento) }} €</td>
+                <td class="text-right">{{ "%.2f"|format(parte.subtotal_desplazamiento) }} €</td>
+            </tr>
+            {% endif %}
+            {% for partida in partidas %}
+            <tr>
+                <td>{{ partida.descripcion }}</td>
+                <td class="text-center">{{ "%.2f"|format(partida.cantidad) }}</td>
+                <td class="text-center">{{ "%.2f"|format(partida.precio) }} €</td>
+                <td class="text-right">{{ "%.2f"|format(partida.total) }} €</td>
+            </tr>
+            {% endfor %}
+            {% for i in range(3) %}
+            <tr>
+                <td colspan="4">&nbsp;</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table width="100%">
+        <tr>
+            <td width="60%">
+                <div class="section-header bg-blue" style="width: 200px;">🏛️ FORMA DE PAGO</div>
+                <div class="checkbox-container">
+                    <div class="checkbox-item"><span class="square"></span> Transferencia</div>
+                    <div class="checkbox-item"><span class="square"></span> Efectivo</div>
+                    <div class="checkbox-item"><span class="square"></span> Bizum</div>
+                </div>
+            </td>
+            <td width="40%">
+                <table class="totals-table">
+                    <tr>
+                        <td align="right"><strong>Subtotal</strong></td>
+                        <td align="right" width="100">{{ "%.2f"|format(parte.subtotal_general) }} €</td>
+                    </tr>
+                    <tr>
+                        <td align="right"><strong>IVA ({{ iva_porcentaje }}%)</strong></td>
+                        <td align="right">{{ "%.2f"|format(parte.iva) }} €</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td align="right">TOTAL</td>
+                        <td align="right">{{ "%.2f"|format(parte.total) }} €</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <table class="signature-section">
+        <tr>
+            <td width="45%" valign="top">
+                <div style="height: 60px;"></div>
+                <div class="signature-box">FIRMA DEL PROFESIONAL</div>
+            </td>
+            <td width="10%"></td>
+            <td width="45%" valign="top">
+                <div style="height: 60px;"></div>
+                <div class="signature-box">CONFORMIDAD DEL CLIENTE</div>
+                <div class="disclaimer">
+                    El cliente acepta la reparación y el importe arriba indicado. En caso de transferencia bancaria, el
+                    cliente se compromete a abonarlo en las próximas 24h.
+                </div>
+            </td>
+        </tr>
+    </table>
+
+</body>
+
+</html>

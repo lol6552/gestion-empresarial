@@ -1,0 +1,39 @@
+# ==============================================================================
+# .dockerignore - Archivos que Docker debe IGNORAR al construir la imagen
+# ==============================================================================
+# Esto evita que se metan archivos innecesarios o sensibles
+# dentro de la imagen Docker (como la base de datos local).
+# ==============================================================================
+
+# Base de datos y PDFs locales (en producción se usa un volumen)
+instance/
+
+# Entorno virtual de Python (el contenedor instala sus propias dependencias)
+venv/
+
+# Caché de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Variables de entorno (contienen claves secretas)
+.env
+
+# Control de versiones
+.git/
+.gitignore
+
+# Archivos del editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentación y archivos de referencia
+*.md
+*.png
+firma.png
+
+# Configuración del agente IA
+.agent/
+.gemini/

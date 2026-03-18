@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Clientes{% endblock %}
+{% block titulo_pagina %}Gestión de Clientes{% endblock %}
+
+{% block contenido %}
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Cabecera con botón de nuevo cliente -->
+<!-- ====================================================================== -->
+<div class="section-header">
+    <div class="section-info">
+        <p class="section-description">
+            Gestiona tu base de datos de clientes. Total: <strong>{{ clientes|length }}</strong> cliente{{ 's' if
+            clientes|length != 1 else '' }}.
+        </p>
+    </div>
+
+    <!-- SECCIÓN: Barra de búsqueda -->
+    <div class="search-container">
+        <form action="{{ url_for('clientes.lista') }}" method="GET" class="search-form">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" name="q" value="{{ busqueda or '' }}"
+                    placeholder="Buscar por nombre, código o teléfono..." class="search-input">
+                {% if busqueda %}
+                <a href="{{ url_for('clientes.lista') }}" class="search-clear" title="Limpiar búsqueda">✕</a>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-secondary">Buscar</button>
+        </form>
+    </div>
+
+    <div class="section-actions">
+        <a href="{{ url_for('clientes.nuevo') }}" class="btn btn-primary">
+            <span class="btn-icon">➕</span>
+            Nuevo Cliente
+        </a>
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Tabla de clientes -->
+<!-- ====================================================================== -->
+{% if clientes %}
+<div class="table-container">
+    <table class="data-table" id="tabla-clientes">
+        <thead>
+            <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>DNI</th>
+                <th>Teléfono</th>
+                <th>Localidad</th>
+                <th>Trabajo</th>
+                <th class="actions-column">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cliente in clientes %}
+            <tr>
+                <!-- Código del cliente -->
+                <td>
+                    <span class="client-code">{{ cliente.codigo or 'CLI-' ~ cliente.id }}</span>
+                </td>
+
+                <!-- Nombre completo -->
+                <td>
+                    <div class="client-name">
+                        <span class="name-initial">{{ cliente.nombre[0] }}{{ cliente.apellido[0] }}</span>
+                        <span>{{ cliente.nombre }} {{ cliente.apellido }}</span>
+                    </div>
+                </td>
+
+                <!-- DNI -->
+                <td>{{ cliente.dni }}</td>
+
+                <!-- Teléfono -->
+                <td>
+                    <a href="tel:{{ cliente.telefono }}" class="phone-link">
+                        📞 {{ cliente.telefono }}
+                    </a>
+                </td>
+
+                <!-- Localidad -->
+                <td>{{ cliente.localidad }}</td>
+
+                <!-- Trabajo (truncado si es largo) -->
+                <td>
+                    {% if cliente.trabajo_a_realizar %}
+                    <span class="work-preview" title="{{ cliente.trabajo_a_realizar }}">
+                        {{ cliente.trabajo_a_realizar[:40] }}{% if cliente.trabajo_a_realizar|length > 40 %}...{% endif
+                        %}
+                    </span>
+                    {% else %}
+                    <span class="no-data">Sin especificar</span>
+                    {% endif %}
+                </td>
+
+                <!-- Acciones -->
+                <td class="actions-column">
+                    <div class="action-buttons">
+                        <!-- Botón Editar -->
+                        <a href="{{ url_for('clientes.editar', id=cliente.id) }}" class="btn btn-small btn-edit"
+                            title="Editar cliente">
+                            ✏️
+                        </a>
+
+                        <!-- Botón Eliminar -->
+                        <form action="{{ url_for('clientes.eliminar', id=cliente.id) }}" method="POST"
+                            class="delete-form" data-nombre="{{ cliente.nombre }} {{ cliente.apellido }}">
+                            <button type="submit" class="btn btn-small btn-delete" title="Eliminar cliente" {% if
+                                cliente.tiene_documentos %}disabled{% endif %}>
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<!-- Mensaje cuando no hay clientes -->
+<div class="empty-state">
+    <div class="empty-icon">👥</div>
+    <h3>No hay clientes registrados</h3>
+    <p>Comienza añadiendo tu primer cliente al sistema.</p>
+    <a href="{{ url_for('clientes.nuevo') }}" class="btn btn-primary btn-large">
+        ➕ Crear primer cliente
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteForms = document.querySelectorAll('.delete-form');
+
+        deleteForms.forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const nombre = this.dataset.nombre;
+                const mensaje = `¿Estás seguro de eliminar a ${nombre}?`;
+
+                if (!confirm(mensaje)) {
+                    e.preventDefault(); // Cancelar el envío si el usuario dice no
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

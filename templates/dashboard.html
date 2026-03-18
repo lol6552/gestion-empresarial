@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Dashboard{% endblock %}
+{% block titulo_pagina %}Dashboard{% endblock %}
+
+{% block contenido %}
+<!-- ====================================================================== -->
+<!-- SECCIÓN: KPIs Principales -->
+<!-- ====================================================================== -->
+<div class="kpi-row">
+    <div class="kpi-card kpi-highlight">
+        <span class="kpi-icon">💰</span>
+        <div class="kpi-content">
+            <span class="kpi-value">{{ "%.2f"|format(kpis.total_mes_actual) }} €</span>
+            <span class="kpi-label">Facturado este mes</span>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-icon">🎯</span>
+        <div class="kpi-content">
+            <span class="kpi-value">{{ estados_ofertas.tasa_conversion }}%</span>
+            <span class="kpi-label">Tasa de conversión</span>
+        </div>
+    </div>
+    <div class="kpi-card">
+        <span class="kpi-icon">📊</span>
+        <div class="kpi-content">
+            <span class="kpi-value">{{ "%.2f"|format(kpis.ticket_medio) }} €</span>
+            <span class="kpi-label">Ticket medio</span>
+        </div>
+    </div>
+    <div class="kpi-card {% if facturas_vencidas|length > 0 %}kpi-warning{% endif %}">
+        <span class="kpi-icon">⚠️</span>
+        <div class="kpi-content">
+            <span class="kpi-value">{{ facturas_vencidas|length }}</span>
+            <span class="kpi-label">Facturas vencidas (+30d)</span>
+        </div>
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Gráficas -->
+<!-- ====================================================================== -->
+<div class="charts-row">
+    <!-- Gráfica de Facturación Mensual -->
+    <div class="chart-card">
+        <h3>📈 Facturación Mensual</h3>
+        <canvas id="chartFacturacion" height="200"></canvas>
+    </div>
+
+    <!-- Gráfica de Ofertas por Estado -->
+    <div class="chart-card chart-small">
+        <h3>📊 Estado de Ofertas</h3>
+        <canvas id="chartOfertas" height="200"></canvas>
+        <div class="chart-legend">
+            <span class="legend-item legend-pending">● Pendientes: {{ estados_ofertas.pendientes }}</span>
+            <span class="legend-item legend-accepted">● Aceptadas: {{ estados_ofertas.aceptadas }}</span>
+            <span class="legend-item legend-rejected">● Rechazadas: {{ estados_ofertas.rechazadas }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Tarjetas de estadísticas -->
+<!-- ====================================================================== -->
+<div class="stats-grid">
+
+    <!-- Tarjeta: Total de Clientes -->
+    <div class="stat-card">
+        <div class="stat-icon clients">👥</div>
+        <div class="stat-content">
+            <span class="stat-value">{{ estadisticas.total_clientes }}</span>
+            <span class="stat-label">Clientes</span>
+        </div>
+        <a href="{{ url_for('clientes.lista') }}" class="stat-link">Ver todos →</a>
+    </div>
+
+    <!-- Tarjeta: Total de Ofertas -->
+    <div class="stat-card">
+        <div class="stat-icon offers">📝</div>
+        <div class="stat-content">
+            <span class="stat-value">{{ estadisticas.total_ofertas }}</span>
+            <span class="stat-label">Ofertas</span>
+        </div>
+        <a href="{{ url_for('ofertas.lista') }}" class="stat-link">Ver todas →</a>
+    </div>
+
+    <!-- Tarjeta: Total de Partes -->
+    <div class="stat-card">
+        <div class="stat-icon parts">🔧</div>
+        <div class="stat-content">
+            <span class="stat-value">{{ estadisticas.total_partes }}</span>
+            <span class="stat-label">Partes de Trabajo</span>
+        </div>
+        <a href="{{ url_for('partes.lista') }}" class="stat-link">Ver todos →</a>
+    </div>
+
+    <!-- Tarjeta: Total de Facturas -->
+    <div class="stat-card">
+        <div class="stat-icon invoices">📄</div>
+        <div class="stat-content">
+            <span class="stat-value">{{ estadisticas.total_facturas }}</span>
+            <span class="stat-label">Facturas</span>
+        </div>
+        <a href="{{ url_for('facturas.lista') }}" class="stat-link">Ver todas →</a>
+    </div>
+
+</div>
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Alertas de Facturas Vencidas -->
+<!-- ====================================================================== -->
+{% if facturas_vencidas|length > 0 %}
+<div class="alert-section">
+    <h3>⚠️ Facturas Pendientes de Cobro (+30 días)</h3>
+    <table class="alert-table">
+        <thead>
+            <tr>
+                <th>Nº Factura</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Total</th>
+                <th>Días</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for factura in facturas_vencidas[:5] %}
+            <tr>
+                <td><a href="{{ url_for('facturas.editar', id=factura.id) }}">{{ factura.numero }}</a></td>
+                <td>{{ factura.cliente.nombre }} {{ factura.cliente.apellido }}</td>
+                <td>{{ factura.fecha.strftime('%d/%m/%Y') }}</td>
+                <td><strong>{{ "%.2f"|format(factura.total) }} €</strong></td>
+                <td class="days-overdue">{{ ((now() - factura.fecha).days) if now else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if facturas_vencidas|length > 5 %}
+    <p class="alert-more">...y {{ facturas_vencidas|length - 5 }} más. <a href="{{ url_for('facturas.lista') }}">Ver
+            todas</a></p>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ====================================================================== -->
+<!-- SECCIÓN: Acciones rápidas -->
+<!-- ====================================================================== -->
+<div class="quick-actions">
+    <h3>Acciones rápidas</h3>
+    <div class="actions-grid">
+        <a href="{{ url_for('clientes.nuevo') }}" class="action-button primary">
+            <span class="action-icon">➕</span>
+            <span class="action-text">Nuevo Cliente</span>
+        </a>
+        <a href="{{ url_for('ofertas.nueva') }}" class="action-button secondary">
+            <span class="action-icon">📝</span>
+            <span class="action-text">Nueva Oferta</span>
+        </a>
+        <a href="{{ url_for('partes.nuevo') }}" class="action-button secondary">
+            <span class="action-icon">🔧</span>
+            <span class="action-text">Nuevo Parte</span>
+        </a>
+        <a href="{{ url_for('facturas.nueva') }}" class="action-button secondary">
+            <span class="action-icon">📄</span>
+            <span class="action-text">Nueva Factura</span>
+        </a>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts_extra %}
+<!-- Chart.js desde CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+    // =========================================================================
+    // GRÁFICA: Facturación Mensual (Barras)
+    // =========================================================================
+    const ctxFacturacion = document.getElementById('chartFacturacion').getContext('2d');
+    new Chart(ctxFacturacion, {
+        type: 'bar',
+        data: {
+            labels: {{ facturacion_mensual.etiquetas | tojson }},
+        datasets: [{
+            label: 'Facturación (€)',
+            data: {{ facturacion_mensual.valores | tojson }},
+        backgroundColor: 'rgba(26, 51, 77, 0.8)',
+        borderColor: 'rgba(26, 51, 77, 1)',
+        borderWidth: 1,
+        borderRadius: 5
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function (value) {
+                        return value + ' €';
+                    }
+                }
+            }
+        }
+    }
+    });
+
+    // =========================================================================
+    // GRÁFICA: Estados de Ofertas (Donut)
+    // =========================================================================
+    const ctxOfertas = document.getElementById('chartOfertas').getContext('2d');
+    new Chart(ctxOfertas, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pendientes', 'Aceptadas', 'Rechazadas'],
+            datasets: [{
+                data: [
+                    {{ estados_ofertas.pendientes }},
+            {{ estados_ofertas.aceptadas }},
+                    {{ estados_ofertas.rechazadas }}
+                ],
+        backgroundColor: [
+        '#f59e0b', // Amarillo - Pendientes
+        '#10b981', // Verde - Aceptadas
+        '#ef4444'  // Rojo - Rechazadas
+    ],
+        borderWidth: 0
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        cutout: '60%'
+    }
+    });
+</script>
+{% endblock %}
