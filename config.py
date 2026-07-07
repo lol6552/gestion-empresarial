@@ -65,13 +65,13 @@ class Config:
 # Información del autónomo que aparece en todos los documentos
 AUTONOMO = {
     'nombre': 'Javier Aranguren Meneses',
-    'dni': '78784784J',
-    'direccion': 'C/ Foz de Lumbier 1',
-    'cuenta_bancaria': '89898 89898 8989',
-    'profesion': 'Electricista·Pequeños arreglos',
-    'telefono': '(55) 1234-5678',
-    'email': 'hola@sitioincreible.com',
-    'web': '@sitioincreible'
+    'dni': '73487359B',
+    'direccion': 'C/ Foz de Lumbier 10,Bajo A. Sarriguren',
+    'cuenta_bancaria': 'ES95 0182 5297 23 0201854500',
+    'profesion': 'Electricista- Mantenimiento General',
+    'telefono': '+34) 634 42 66 24',
+    'email': 'aransk27.1@gmail.com',
+    'web': '---'
 }
 
 # ==============================================================================
