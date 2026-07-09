@@ -260,40 +260,53 @@ def _procesar_formulario_factura(form, clientes, oferta_id=None, parte_id=None, 
             db.session.commit()
             flash('Factura actualizada correctamente', 'success')
         else:
-            # Crear nueva
-            numero_factura = Numerador.obtener_siguiente_numero('factura')
-            
-            nueva_factura = Factura(
-                numero=numero_factura,
-                cliente_id=int(cliente_id),
-                oferta_id=oferta_id,
-                parte_id=parte_id,
-                fecha=fecha,
-                descripcion=descripcion if descripcion else None,
-                subtotal=subtotal,
-                iva=iva,
-                total=total,
-                forma_pago=forma_pago
-            )
-            
-            db.session.add(nueva_factura)
-            db.session.flush()
-            
-            # Crear partidas
-            for p in partidas_procesadas:
-                partida = FacturaPartida(
-                    factura_id=nueva_factura.id,
-                    descripcion=p['descripcion'],
-                    cantidad=p['cantidad'],
-                    precio=p['precio'],
-                    total=p['total'],
-                    orden=p['orden']
+            try:
+                # Obtener el siguiente número de factura
+                numero_factura = Numerador.obtener_siguiente_numero('factura')
+
+                 # Crear la factura
+                 nueva_factura = Factura(
+                    numero=numero_factura,
+                    cliente_id=int(cliente_id),
+                    oferta_id=oferta_id,
+                    parte_id=parte_id,
+                    fecha=fecha,
+                    descripcion=descripcion if descripcion else None,
+                    subtotal=subtotal,
+                    iva=iva,
+                    total=total,
+                    forma_pago=forma_pago
                 )
-                db.session.add(partida)
-            
-            db.session.commit()
-            flash('Factura guardada correctamente', 'success')
-        
+
+                db.session.add(nueva_factura)
+                db.session.flush()  # Obtiene el ID de la factura sin hacer commit
+
+                # Crear las partidas de la factura
+                for p in partidas_procesadas:
+                    partida = FacturaPartida(
+                        factura_id=nueva_factura.id,
+                        descripcion=p['descripcion'],
+                        cantidad=p['cantidad'],
+                        precio=p['precio'],
+                        total=p['total'],
+                        orden=p['orden']
+                    )
+                    db.session.add(partida)
+
+                # Guardar todo junto (numerador + factura + partidas)
+                db.session.commit()
+
+                flash('Factura guardada correctamente', 'success')
+
+            except Exception as e:
+                db.session.rollback()
+
+                # Opcional: mostrar el error en la consola del servidor
+                print(f"Error al guardar la factura: {e}")
+
+                flash('Ha ocurrido un error al guardar la factura.', 'danger')
+                return redirect(url_for('facturas.lista'))
+
         return redirect(url_for('facturas.lista'))
         
     except Exception as e:

@@ -46,45 +46,29 @@ class Numerador(db.Model):
     @staticmethod
     def obtener_siguiente_numero(tipo_documento):
         """
-        Obtiene el siguiente número correlativo para un tipo de documento.
-        
-        Este método:
-        1. Busca el registro del tipo de documento
-        2. Si no existe, lo crea con valor 0
-        3. Incrementa el contador en 1
-        4. Guarda el nuevo valor
-        5. Devuelve el número formateado
-        
-        Parámetros:
-            tipo_documento (str): 'oferta', 'parte' o 'factura'
-        
-        Retorna:
-            str: Número formateado (ej: 'OFERTA-001', 'PARTE-015', 'FACTURA-003')
-        
-        Ejemplo de uso:
-            numero = Numerador.obtener_siguiente_numero('oferta')
-            # Devuelve: 'OFERTA-001' (si es el primero)
+        Obtiene el siguiente número correlativo sin hacer commit.
+        El commit se realizará junto con la creación del documento.
         """
-        # Buscamos el registro del numerador para este tipo
+
         numerador = Numerador.query.filter_by(tipo_documento=tipo_documento).first()
-        
-        # Si no existe, lo creamos con valor inicial 0
+
         if numerador is None:
-            numerador = Numerador(tipo_documento=tipo_documento, ultimo_numero=0)
-            db.session.add(numerador)
-        
-        # Incrementamos el contador
+        numerador = Numerador(
+            tipo_documento=tipo_documento,
+            ultimo_numero=0
+            )
+        db.session.add(numerador)
+        db.session.flush()   # Para asegurarnos de que existe en la sesión
+
         numerador.ultimo_numero += 1
-        
-        # Guardamos en la base de datos
-        db.session.commit()
-        
-        # Formateamos el número: TIPO-NNN (3 dígitos mínimo)
-        # upper() convierte a mayúsculas, zfill(3) rellena con ceros a la izquierda
-        numero_formateado = f"{tipo_documento.upper()}-{str(numerador.ultimo_numero).zfill(3)}"
-        
+
+        numero_formateado = (
+        f"{tipo_documento.upper()}-"
+        f"{str(numerador.ultimo_numero).zfill(3)}"
+        )
+
         return numero_formateado
-    
+
     @staticmethod
     def obtener_ultimo_numero(tipo_documento):
         """
