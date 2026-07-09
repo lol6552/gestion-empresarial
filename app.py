@@ -1,13 +1,3 @@
-#me dice chaty para la version
-from version import APP_VERSION, APP_DATE, APP_CHANGE
-@app.route("/version")
-def version():
-    return {
-        "version": APP_VERSION,
-        "date": APP_DATE,
-        "change": APP_CHANGE
-    }
-
 
 
 # -*- coding: utf-8 -*-
@@ -36,6 +26,17 @@ from models import db
 
 # Importamos los Blueprints
 from routes import blueprints
+#me dice chaty para la version
+from version import APP_VERSION, APP_DATE, APP_CHANGE
+@app.route("/version")
+def version():
+    return {
+        "version": APP_VERSION,
+        "date": APP_DATE,
+        "change": APP_CHANGE
+    }
+
+
 
 
 def crear_app():
