@@ -65,7 +65,7 @@ class Config:
 # Información del autónomo que aparece en todos los documentos
 AUTONOMO = {
     'nombre': 'Javier Aranguren Meneses',
-    'dni': '73487359B',
+    'dni': '73487357B',
     'direccion': 'C/ Foz de Lumbier 10,Bajo A. Sarriguren',
     'cuenta_bancaria': 'ES95 0182 5297 23 0201854500',
     'profesion': 'Electricista- Mantenimiento General',
