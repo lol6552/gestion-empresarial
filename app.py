@@ -26,15 +26,7 @@ from models import db
 
 # Importamos los Blueprints
 from routes import blueprints
-#me dice chaty para la version
-from version import APP_VERSION, APP_DATE, APP_CHANGE
-@app.route("/version")
-def version():
-    return {
-        "version": APP_VERSION,
-        "date": APP_DATE,
-        "change": APP_CHANGE
-    }
+
 
 
 
@@ -46,7 +38,7 @@ def crear_app():
     Esta función:
     1. Crea la instancia de Flask
     2. Aplica la configuración
-    3. Inicializa la base de datos
+    3. Inicializa la base de
     4. Registra los Blueprints
     5. Crea las tablas si no existen
     
@@ -62,6 +54,16 @@ def crear_app():
     # Aplicamos la configuración desde config.py
     app.config.from_object(Config)
     
+    ######chatyyyy###
+    from version import APP_VERSION, APP_DATE, APP_CHANGE
+
+    @app.route("/version")
+    def version():
+        return {
+            "version": APP_VERSION,
+            "date": APP_DATE,
+            "change": APP_CHANGE
+        }
     # ==============================================================================
     # CREAR DIRECTORIOS NECESARIOS
     # ==============================================================================
