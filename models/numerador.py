@@ -53,18 +53,18 @@ class Numerador(db.Model):
         numerador = Numerador.query.filter_by(tipo_documento=tipo_documento).first()
 
         if numerador is None:
-        numerador = Numerador(
-            tipo_documento=tipo_documento,
-            ultimo_numero=0
+            numerador = Numerador(
+                tipo_documento=tipo_documento,
+                ultimo_numero=0
             )
-        db.session.add(numerador)
-        db.session.flush()   # Para asegurarnos de que existe en la sesión
+            db.session.add(numerador)
+            db.session.flush()   # Para asegurarnos de que existe en la sesión
 
         numerador.ultimo_numero += 1
 
         numero_formateado = (
-        f"{tipo_documento.upper()}-"
-        f"{str(numerador.ultimo_numero).zfill(3)}"
+            f"{tipo_documento.upper()}-"
+            f"{str(numerador.ultimo_numero).zfill(3)}"
         )
 
         return numero_formateado
