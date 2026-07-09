@@ -265,7 +265,7 @@ def _procesar_formulario_factura(form, clientes, oferta_id=None, parte_id=None, 
                 numero_factura = Numerador.obtener_siguiente_numero('factura')
 
                  # Crear la factura
-                 nueva_factura = Factura(
+                nueva_factura = Factura(
                     numero=numero_factura,
                     cliente_id=int(cliente_id),
                     oferta_id=oferta_id,
