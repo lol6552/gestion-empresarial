@@ -1,3 +1,15 @@
+#me dice chaty para la version
+from version import APP_VERSION, APP_DATE, APP_CHANGE
+@app.route("/version")
+def version():
+    return {
+        "version": APP_VERSION,
+        "date": APP_DATE,
+        "change": APP_CHANGE
+    }
+
+
+
 # -*- coding: utf-8 -*-
 """
 app.py - Punto de entrada del Sistema de Gestión Empresarial
