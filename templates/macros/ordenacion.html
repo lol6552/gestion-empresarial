@@ -1,0 +1,42 @@
+{# 
+    templates/macros/ordenacion.html - Macro reutilizable para encabezados ordenables
+    
+    Este macro genera un <th> clicable que permite ordenar la tabla
+    por esa columna. Al hacer clic, alterna entre ascendente y descendente.
+    
+    Conserva todos los parámetros GET actuales (búsqueda, filtros, página)
+    y solo cambia sort/order.
+    
+    Para usar en cualquier plantilla:
+        {% from 'macros/ordenacion.html' import th_ordenable %}
+        {{ th_ordenable('nombre', 'Nombre', sort_actual, order_actual) }}
+#}
+
+{% macro th_ordenable(clave, etiqueta, sort_actual, order_actual) %}
+{# 
+    Genera un encabezado de tabla ordenable con indicador visual.
+    
+    Parámetros:
+        clave (str): Valor que se enviará como parámetro GET 'sort'
+        etiqueta (str): Texto visible del encabezado (ej: "Nombre", "DNI")
+        sort_actual (str): Campo por el que se está ordenando actualmente
+        order_actual (str): Dirección actual ('asc' o 'desc')
+#}
+{% set es_activo = (sort_actual == clave) %}
+{% set siguiente_order = 'desc' if (es_activo and order_actual == 'asc') else 'asc' %}
+
+{# Construimos la URL conservando todos los parámetros GET actuales #}
+{% set params = request.args.to_dict() %}
+{% set _ = params.update({'sort': clave, 'order': siguiente_order}) %}
+
+<th class="sortable-header{% if es_activo %} sorted{% endif %}">
+    <a href="{{ url_for(request.endpoint, **params) }}" class="sort-link" title="Ordenar por {{ etiqueta }}">
+        {{ etiqueta }}
+        {% if es_activo %}
+            <span class="sort-indicator active">{{ '↑' if order_actual == 'asc' else '↓' }}</span>
+        {% else %}
+            <span class="sort-indicator">⇅</span>
+        {% endif %}
+    </a>
+</th>
+{% endmacro %}

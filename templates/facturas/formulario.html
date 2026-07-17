@@ -303,6 +303,16 @@
             </div>
         </div>
 
+        <!-- SECCIÓN: Estado de Cobro -->
+        <div class="form-section">
+            <h3 class="section-title">💵 Estado de Cobro</h3>
+            <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                <input type="checkbox" id="pagada" name="pagada" style="width: auto; cursor: pointer; transform: scale(1.2);"
+                    {% if (datos and (datos.pagada == 'on' or datos.pagada == 'true' or datos.pagada == 1)) or (factura and factura.pagada) %}checked{% endif %}>
+                <label for="pagada" style="font-weight: 500; cursor: pointer; user-select: none; margin-left: 8px;">Marcar esta factura como cobrada (pagada)</label>
+            </div>
+        </div>
+
         <!-- Botones -->
         <div class="form-actions">
             <a href="{{ url_for('facturas.lista') }}" class="btn btn-secondary">← Cancelar</a>

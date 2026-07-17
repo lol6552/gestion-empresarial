@@ -256,6 +256,9 @@
             <span>{{ factura.cliente.dni }}</span><br>
             {{ factura.cliente.direccion }}<br>
             {{ factura.cliente.codigo_postal }} {{ factura.cliente.localidad }}
+            {% if factura.cliente.email %}
+            <br>Email: {{ factura.cliente.email }}
+            {% endif %}
         </div>
         <div class="doc-title-block">
             <h2>{{ tipo_documento | default('FACTURA') }}</h2>

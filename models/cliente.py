@@ -63,6 +63,9 @@ class Cliente(db.Model):
     # Localidad/Ciudad (obligatorio)
     localidad = db.Column(db.String(100), nullable=False)
     
+    # Correo electrónico del cliente (opcional, nullable)
+    email = db.Column(db.String(120), nullable=True)
+    
     # Descripción del trabajo a realizar (opcional, puede ser largo)
     trabajo_a_realizar = db.Column(db.Text, nullable=True)
     

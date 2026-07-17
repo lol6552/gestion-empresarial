@@ -29,17 +29,27 @@ principal_bp = Blueprint('principal', __name__)
 # FUNCIONES AUXILIARES PARA MÉTRICAS
 # ==============================================================================
 
-def obtener_facturacion_mensual(meses=6):
+def obtener_facturacion_mensual():
     """
-    Calcula la facturación total de los últimos N meses.
-    
-    Parámetros:
-        meses (int): Número de meses a consultar (por defecto 6)
+    Calcula la facturación total de los meses con datos (mínimo 6, máximo 24).
     
     Retorna:
         dict: {'etiquetas': ['Ene', 'Feb', ...], 'valores': [1500.00, 2300.00, ...]}
     """
     hoy = datetime.now()
+    
+    # Buscamos la fecha de la factura más antigua para saber cuántos meses consultar
+    factura_antigua = Factura.query.order_by(Factura.fecha.asc()).first()
+    
+    meses = 6
+    if factura_antigua:
+        # Calcular diferencia en meses
+        diferencia_anios = hoy.year - factura_antigua.fecha.year
+        diferencia_meses = hoy.month - factura_antigua.fecha.month
+        meses_totales = diferencia_anios * 12 + diferencia_meses + 1
+        # Limitamos entre 6 y 24 meses por rendimiento y UX, pero garantizando navegación
+        meses = max(6, min(24, meses_totales))
+        
     etiquetas = []
     valores = []
     
@@ -49,7 +59,7 @@ def obtener_facturacion_mensual(meses=6):
     
     for i in range(meses - 1, -1, -1):
         # Calculamos el mes objetivo (hacia atrás)
-        fecha_objetivo = hoy - timedelta(days=i * 30)
+        fecha_objetivo = hoy - timedelta(days=i * 30.5)  # Usamos 30.5 días aproximado para evitar saltos de mes incorrectos
         mes = fecha_objetivo.month
         anio = fecha_objetivo.year
         
@@ -62,7 +72,9 @@ def obtener_facturacion_mensual(meses=6):
         # Si no hay facturas, el total es 0
         total_mes = float(total_mes) if total_mes else 0.0
         
-        etiquetas.append(nombres_meses[mes - 1])
+        # Etiqueta en formato "Mes AÑO" (ej: "Ene 26")
+        etiqueta_mes = f"{nombres_meses[mes - 1]} {str(anio)[2:]}"
+        etiquetas.append(etiqueta_mes)
         valores.append(round(total_mes, 2))
     
     return {'etiquetas': etiquetas, 'valores': valores}
@@ -104,11 +116,10 @@ def obtener_facturas_vencidas(dias_limite=30):
     """
     fecha_limite = datetime.now() - timedelta(days=dias_limite)
     
-    # Facturas cuya fecha es anterior al límite
-    # NOTA: Aquí asumimos que todas las facturas listadas están pendientes de cobro.
-    # Para un sistema real, se añadiría un campo 'pagada' al modelo Factura.
+    # Facturas cuya fecha es anterior al límite y no están cobradas (pagada == False)
     facturas_vencidas = Factura.query.filter(
-        Factura.fecha < fecha_limite
+        Factura.fecha < fecha_limite,
+        Factura.pagada == False
     ).order_by(Factura.fecha.asc()).all()
     
     return facturas_vencidas
@@ -116,10 +127,10 @@ def obtener_facturas_vencidas(dias_limite=30):
 
 def obtener_kpis_facturacion():
     """
-    Calcula KPIs de facturación: total mes actual, ticket medio.
+    Calcula KPIs de facturación: total mes actual, total año actual y ticket medio.
     
     Retorna:
-        dict: {'total_mes_actual': X, 'ticket_medio': Y}
+        dict: {'total_mes_actual': X, 'total_anio_actual': Y, 'ticket_medio': Z}
     """
     hoy = datetime.now()
     
@@ -129,6 +140,12 @@ def obtener_kpis_facturacion():
         extract('year', Factura.fecha) == hoy.year
     ).scalar()
     total_mes = float(total_mes) if total_mes else 0.0
+    
+    # Total facturado este año
+    total_anio = db.session.query(func.sum(Factura.total)).filter(
+        extract('year', Factura.fecha) == hoy.year
+    ).scalar()
+    total_anio = float(total_anio) if total_anio else 0.0
     
     # Ticket medio (total / número de facturas)
     num_facturas = Factura.query.count()
@@ -141,6 +158,7 @@ def obtener_kpis_facturacion():
     
     return {
         'total_mes_actual': round(total_mes, 2),
+        'total_anio_actual': round(total_anio, 2),
         'ticket_medio': ticket_medio
     }
 
@@ -174,11 +192,11 @@ def dashboard():
         'ofertas_pendientes': Oferta.query.filter_by(estado='pendiente').count(),
     }
     
-    # Datos para gráficas
-    facturacion_mensual = obtener_facturacion_mensual(6)
+    # Datos para gráficas (obtener todos los meses con datos)
+    facturacion_mensual = obtener_facturacion_mensual()
     estados_ofertas = obtener_estados_ofertas()
     
-    # Facturas vencidas (más de 30 días)
+    # Facturas vencidas (más de 30 días y no pagadas)
     facturas_vencidas = obtener_facturas_vencidas(30)
     
     # KPIs

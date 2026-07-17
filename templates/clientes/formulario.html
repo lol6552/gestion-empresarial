@@ -50,13 +50,23 @@
                         placeholder="Ej: 12345678A" required maxlength="20" pattern="[0-9A-Za-z]{8,12}">
                     <span class="form-hint">El DNI debe ser único para cada cliente</span>
                 </div>
+            </div>
 
+            <div class="form-row">
                 <!-- Campo: Teléfono -->
                 <div class="form-group">
                     <label for="telefono">Teléfono *</label>
                     <input type="tel" id="telefono" name="telefono"
                         value="{{ datos.telefono if datos else (cliente.telefono if cliente else '') }}"
                         placeholder="Ej: 612345678" required maxlength="20">
+                </div>
+
+                <!-- Campo: Email -->
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email"
+                        value="{{ datos.email if datos else (cliente.email if cliente else '') }}"
+                        placeholder="Ej: cliente@correo.com" maxlength="120">
                 </div>
             </div>
         </fieldset>

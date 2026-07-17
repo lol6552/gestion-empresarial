@@ -16,6 +16,9 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 # Importamos la base de datos, modelo Cliente y Numerador
 from models import db, Cliente, Numerador
 
+# Importamos la función de ordenación reutilizable
+from utils.ordenacion import aplicar_ordenacion
+
 # ==============================================================================
 # CONFIGURACIÓN DEL BLUEPRINT
 # ==============================================================================
@@ -23,6 +26,22 @@ from models import db, Cliente, Numerador
 # Creamos el Blueprint 'clientes'
 # url_prefix='/clientes' significa que todas las rutas empezarán con /clientes
 clientes_bp = Blueprint('clientes', __name__, url_prefix='/clientes')
+
+# ==============================================================================
+# CAMPOS ORDENABLES PARA CLIENTES
+# ==============================================================================
+
+# Lista blanca de campos por los que se puede ordenar la tabla de clientes.
+# La clave es el valor que llega por GET (?sort=nombre),
+# el valor es la columna real del modelo SQLAlchemy.
+CAMPOS_ORDENABLES_CLIENTES = {
+    'codigo': Cliente.codigo,
+    'nombre': Cliente.apellido,       # Ordenar por "Nombre" usa el apellido
+    'dni': Cliente.dni,
+    'telefono': Cliente.telefono,
+    'localidad': Cliente.localidad,
+    'trabajo': Cliente.trabajo_a_realizar,
+}
 
 
 # ==============================================================================
@@ -35,13 +54,22 @@ def lista():
     Muestra la lista de todos los clientes.
     
     Permite filtrar por un término de búsqueda (nombre, id/código, teléfono).
-    Los clientes se ordenan alfabéticamente por apellido.
+    Permite ordenar por columna haciendo clic en los encabezados.
+    
+    Parámetros GET:
+        q (str): Término de búsqueda
+        sort (str): Campo por el que ordenar (codigo, nombre, dni, telefono, localidad, trabajo)
+        order (str): Dirección de la ordenación (asc o desc)
     
     Retorna:
         HTML: Plantilla con la tabla de clientes
     """
     # Obtenemos el término de búsqueda desde la URL (?q=termino)
     termino = request.args.get('q', '').strip()
+    
+    # Obtenemos los parámetros de ordenación desde la URL
+    sort_key = request.args.get('sort', '').strip()
+    order = request.args.get('order', 'asc').strip()
     
     # Consulta base
     query = Cliente.query
@@ -61,11 +89,22 @@ def lista():
             Cliente.telefono.ilike(f'%{termino}%')
         ))
     
-    # Obtenemos los clientes ordenados por apellido
-    clientes = query.order_by(Cliente.apellido.asc()).all()
+    # Aplicamos la ordenación dinámica (validada contra lista blanca)
+    query = aplicar_ordenacion(query, sort_key, order, CAMPOS_ORDENABLES_CLIENTES)
     
-    # Renderizamos la plantilla de lista, pasando también el término para el input
-    return render_template('clientes/lista.html', clientes=clientes, busqueda=termino)
+    # Si no se pidió ordenación específica, usamos el orden por defecto (apellido)
+    if sort_key not in CAMPOS_ORDENABLES_CLIENTES:
+        query = query.order_by(Cliente.apellido.asc())
+    
+    # Obtenemos todos los clientes
+    clientes = query.all()
+    
+    # Renderizamos la plantilla pasando también sort/order para los encabezados
+    return render_template('clientes/lista.html', 
+                           clientes=clientes, 
+                           busqueda=termino,
+                           sort_actual=sort_key,
+                           order_actual=order)
 
 
 # ==============================================================================
@@ -91,6 +130,7 @@ def nuevo():
         apellido = request.form.get('apellido', '').strip()
         dni = request.form.get('dni', '').strip().upper()
         telefono = request.form.get('telefono', '').strip()
+        email = request.form.get('email', '').strip()
         direccion = request.form.get('direccion', '').strip()
         codigo_postal = request.form.get('codigo_postal', '').strip()
         localidad = request.form.get('localidad', '').strip()
@@ -118,6 +158,7 @@ def nuevo():
                 apellido=apellido,
                 dni=dni,
                 telefono=telefono,
+                email=email if email else None,
                 direccion=direccion,
                 codigo_postal=codigo_postal,
                 localidad=localidad,
@@ -177,6 +218,7 @@ def editar(id):
         apellido = request.form.get('apellido', '').strip()
         dni = request.form.get('dni', '').strip().upper()
         telefono = request.form.get('telefono', '').strip()
+        email = request.form.get('email', '').strip()
         direccion = request.form.get('direccion', '').strip()
         codigo_postal = request.form.get('codigo_postal', '').strip()
         localidad = request.form.get('localidad', '').strip()
@@ -203,6 +245,7 @@ def editar(id):
             cliente.apellido = apellido
             cliente.dni = dni
             cliente.telefono = telefono
+            cliente.email = email if email else None
             cliente.direccion = direccion
             cliente.codigo_postal = codigo_postal
             cliente.localidad = localidad

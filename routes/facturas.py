@@ -13,6 +13,19 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from models import db, Cliente, Oferta, OfertaPartida, ParteTrabajo, PartePartida, Factura, FacturaPartida, Numerador
 from config import IVA_PORCENTAJE, AUTONOMO, INSTANCE_DIR, FORMAS_PAGO, BASE_DIR
 
+# Importamos la utilidad de ordenación
+from utils.ordenacion import aplicar_ordenacion
+
+# Lista blanca de campos ordenables para facturas
+CAMPOS_ORDENABLES_FACTURAS = {
+    'numero': Factura.numero,
+    'cliente': Cliente.apellido,
+    'fecha': Factura.fecha,
+    'total': Factura.total,
+    'forma_pago': Factura.forma_pago,
+    'pagada': Factura.pagada
+}
+
 # ==============================================================================
 # CONFIGURACIÓN DEL BLUEPRINT
 # ==============================================================================
@@ -31,6 +44,10 @@ def lista():
     fecha_desde = request.args.get('fecha_desde', '').strip()
     fecha_hasta = request.args.get('fecha_hasta', '').strip()
     forma_pago_filtro = request.args.get('forma_pago', '').strip()
+    
+    # Parámetros de ordenación
+    sort_key = request.args.get('sort', '').strip()
+    order = request.args.get('order', 'asc').strip()
     
     query = Factura.query.join(Cliente)
     
@@ -59,14 +76,23 @@ def lista():
     if forma_pago_filtro:
         query = query.filter(Factura.forma_pago == forma_pago_filtro)
     
-    facturas = query.order_by(Factura.fecha.desc()).all()
+    # Aplicar ordenación dinámica
+    query = aplicar_ordenacion(query, sort_key, order, CAMPOS_ORDENABLES_FACTURAS)
+    
+    # Si no se solicitó ordenación, usar la ordenación por defecto (fecha descendente)
+    if sort_key not in CAMPOS_ORDENABLES_FACTURAS:
+        query = query.order_by(Factura.fecha.desc())
+        
+    facturas = query.all()
     
     return render_template('facturas/lista.html', 
                            facturas=facturas, 
                            busqueda=termino,
                            fecha_desde=fecha_desde,
                            fecha_hasta=fecha_hasta,
-                           forma_pago_filtro=forma_pago_filtro)
+                           forma_pago_filtro=forma_pago_filtro,
+                           sort_actual=sort_key,
+                           order_actual=order)
 
 
 # ==============================================================================
@@ -192,6 +218,7 @@ def _procesar_formulario_factura(form, clientes, oferta_id=None, parte_id=None, 
     fecha_str = form.get('fecha', '').strip()
     descripcion = form.get('descripcion', '').strip()
     forma_pago = form.get('forma_pago', '').strip()
+    pagada = form.get('pagada') in ['on', 'true', '1']
     
     # Partidas (arrays)
     partidas_desc = form.getlist('partida_descripcion[]')
@@ -242,6 +269,7 @@ def _procesar_formulario_factura(form, clientes, oferta_id=None, parte_id=None, 
             factura.iva = iva
             factura.total = total
             factura.forma_pago = forma_pago
+            factura.pagada = pagada
             
             # Eliminar partidas antiguas y crear nuevas
             FacturaPartida.query.filter_by(factura_id=factura.id).delete()
@@ -275,7 +303,8 @@ def _procesar_formulario_factura(form, clientes, oferta_id=None, parte_id=None, 
                     subtotal=subtotal,
                     iva=iva,
                     total=total,
-                    forma_pago=forma_pago
+                    forma_pago=forma_pago,
+                    pagada=pagada
                 )
 
                 db.session.add(nueva_factura)
@@ -424,3 +453,31 @@ def generar_pdf(id):
         flash(f'Error grave al generar el PDF: {str(e)}', 'error')
         print(f"ERROR PLAYWRIGHT: {e}") 
         return redirect(url_for('facturas.lista'))
+
+
+# ==============================================================================
+# CAMBIAR ESTADO DE PAGO (TOGGLE)
+# ==============================================================================
+
+@facturas_bp.route('/toggle-pago/<int:id>', methods=['POST'])
+def toggle_pago(id):
+    """
+    Alterna el estado de pago de una factura de forma rápida.
+    
+    Parámetros:
+        id (int): Identificador de la factura
+        
+    Retorna:
+        Redirección a la vista de origen
+    """
+    factura = Factura.query.get_or_404(id)
+    try:
+        factura.pagada = not factura.pagada
+        db.session.commit()
+        estado = 'pagada' if factura.pagada else 'pendiente de cobro'
+        flash(f'Factura {factura.numero} marcada como {estado} correctamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al cambiar el estado de pago: {str(e)}', 'error')
+        
+    return redirect(request.referrer or url_for('facturas.lista'))

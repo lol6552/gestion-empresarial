@@ -22,6 +22,18 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from models import db, Cliente, Oferta, OfertaPartida, Numerador
 from config import IVA_PORCENTAJE, AUTONOMO, INSTANCE_DIR, FORMAS_PAGO, BASE_DIR
 
+# Importamos la utilidad de ordenación
+from utils.ordenacion import aplicar_ordenacion
+
+# Lista blanca de campos ordenables para ofertas
+CAMPOS_ORDENABLES_OFERTAS = {
+    'numero': Oferta.numero,
+    'cliente': Cliente.apellido,
+    'fecha': Oferta.fecha,
+    'total': Oferta.total,
+    'estado': Oferta.estado
+}
+
 # ==============================================================================
 # CONFIGURACIÓN DEL BLUEPRINT
 # ==============================================================================
@@ -42,6 +54,10 @@ def lista():
     termino = request.args.get('q', '').strip()
     estado_filtro = request.args.get('estado', '').strip()
     
+    # Parámetros de ordenación
+    sort_key = request.args.get('sort', '').strip()
+    order = request.args.get('order', 'asc').strip()
+    
     query = Oferta.query.join(Cliente)
     
     if termino:
@@ -55,12 +71,21 @@ def lista():
     if estado_filtro:
         query = query.filter(Oferta.estado == estado_filtro)
     
-    ofertas = query.order_by(Oferta.fecha.desc()).all()
+    # Aplicar ordenación dinámica
+    query = aplicar_ordenacion(query, sort_key, order, CAMPOS_ORDENABLES_OFERTAS)
+    
+    # Si no se solicitó ordenación, usar la ordenación por defecto (fecha descendente)
+    if sort_key not in CAMPOS_ORDENABLES_OFERTAS:
+        query = query.order_by(Oferta.fecha.desc())
+        
+    ofertas = query.all()
     
     return render_template('ofertas/lista.html', 
                            ofertas=ofertas, 
                            busqueda=termino,
-                           estado_filtro=estado_filtro)
+                           estado_filtro=estado_filtro,
+                           sort_actual=sort_key,
+                           order_actual=order)
 
 
 # ==============================================================================

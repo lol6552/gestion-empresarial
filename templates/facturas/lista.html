@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+{# Importamos el macro para generar encabezados de tabla ordenables #}
+{% from 'macros/ordenacion.html' import th_ordenable %}
 
 {% block titulo %}Facturas{% endblock %}
 {% block titulo_pagina %}Gestión de Facturas{% endblock %}
@@ -16,12 +18,17 @@
     <!-- Barra de búsqueda y filtros -->
     <div class="search-container">
         <form action="{{ url_for('facturas.lista') }}" method="GET" class="search-form">
+            <!-- Campos ocultos para conservar la ordenación al buscar -->
+            {% if sort_actual %}
+            <input type="hidden" name="sort" value="{{ sort_actual }}">
+            <input type="hidden" name="order" value="{{ order_actual }}">
+            {% endif %}
             <div class="search-input-wrapper">
                 <span class="search-icon">🔍</span>
                 <input type="text" name="q" value="{{ busqueda or '' }}" placeholder="Buscar por cliente o número..."
                     class="search-input">
                 {% if busqueda %}
-                <a href="{{ url_for('facturas.lista') }}" class="search-clear" title="Limpiar">✕</a>
+                <a href="{{ url_for('facturas.lista', sort=sort_actual, order=order_actual) }}" class="search-clear" title="Limpiar">✕</a>
                 {% endif %}
             </div>
 
@@ -54,12 +61,13 @@
     <table class="data-table" id="tabla-facturas">
         <thead>
             <tr>
-                <th>Número</th>
-                <th>Cliente</th>
-                <th>Fecha</th>
-                <th>Total</th>
+                {{ th_ordenable('numero', 'Número', sort_actual, order_actual) }}
+                {{ th_ordenable('cliente', 'Cliente', sort_actual, order_actual) }}
+                {{ th_ordenable('fecha', 'Fecha', sort_actual, order_actual) }}
+                {{ th_ordenable('total', 'Total', sort_actual, order_actual) }}
                 <th>Origen</th>
-                <th>Pago</th>
+                {{ th_ordenable('forma_pago', 'Pago', sort_actual, order_actual) }}
+                {{ th_ordenable('pagada', 'Estado', sort_actual, order_actual) }}
                 <th class="actions-column">Acciones</th>
             </tr>
         </thead>
@@ -106,9 +114,26 @@
                     </span>
                 </td>
 
+                <!-- Estado de cobro -->
+                <td>
+                    {% if factura.pagada %}
+                        <span class="badge badge-aceptada" style="font-size: 0.75rem; padding: 2px 6px;">Cobrada</span>
+                    {% else %}
+                        <span class="badge badge-pendiente" style="font-size: 0.75rem; padding: 2px 6px;">Pendiente</span>
+                    {% endif %}
+                </td>
+
                 <!-- Acciones -->
                 <td class="actions-column">
                     <div class="action-buttons">
+                        <!-- Marcar como Pagada/Pendiente (Toggle) -->
+                        <form action="{{ url_for('facturas.toggle_pago', id=factura.id) }}" method="POST" class="inline-form">
+                            <button type="submit" class="btn btn-small {% if factura.pagada %}btn-status{% else %}btn-invoice{% endif %}" 
+                                    title="{% if factura.pagada %}Marcar como Pendiente{% else %}Marcar como Cobrada{% endif %}">
+                                {% if factura.pagada %}🔄{% else %}✅{% endif %}
+                            </button>
+                        </form>
+
                         <!-- PDF -->
                         <a href="{{ url_for('facturas.generar_pdf', id=factura.id) }}" class="btn btn-small btn-pdf"
                             title="Descargar PDF" target="_blank">

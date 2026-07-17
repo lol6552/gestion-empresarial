@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+{# Importamos el macro para generar encabezados de tabla ordenables #}
+{% from 'macros/ordenacion.html' import th_ordenable %}
 
 {% block titulo %}Clientes{% endblock %}
 {% block titulo_pagina %}Gestión de Clientes{% endblock %}
@@ -18,12 +20,17 @@
     <!-- SECCIÓN: Barra de búsqueda -->
     <div class="search-container">
         <form action="{{ url_for('clientes.lista') }}" method="GET" class="search-form">
+            <!-- Campos ocultos para conservar la ordenación al buscar -->
+            {% if sort_actual %}
+            <input type="hidden" name="sort" value="{{ sort_actual }}">
+            <input type="hidden" name="order" value="{{ order_actual }}">
+            {% endif %}
             <div class="search-input-wrapper">
                 <span class="search-icon">🔍</span>
                 <input type="text" name="q" value="{{ busqueda or '' }}"
                     placeholder="Buscar por nombre, código o teléfono..." class="search-input">
                 {% if busqueda %}
-                <a href="{{ url_for('clientes.lista') }}" class="search-clear" title="Limpiar búsqueda">✕</a>
+                <a href="{{ url_for('clientes.lista', sort=sort_actual, order=order_actual) }}" class="search-clear" title="Limpiar búsqueda">✕</a>
                 {% endif %}
             </div>
             <button type="submit" class="btn btn-secondary">Buscar</button>
@@ -39,19 +46,20 @@
 </div>
 
 <!-- ====================================================================== -->
-<!-- SECCIÓN: Tabla de clientes -->
+<!-- SECCIÓN: Tabla de clientes con encabezados ordenables -->
 <!-- ====================================================================== -->
 {% if clientes %}
 <div class="table-container">
     <table class="data-table" id="tabla-clientes">
         <thead>
             <tr>
-                <th>Código</th>
-                <th>Nombre</th>
-                <th>DNI</th>
-                <th>Teléfono</th>
-                <th>Localidad</th>
-                <th>Trabajo</th>
+                <!-- Encabezados ordenables usando el macro reutilizable -->
+                {{ th_ordenable('codigo', 'Código', sort_actual, order_actual) }}
+                {{ th_ordenable('nombre', 'Nombre', sort_actual, order_actual) }}
+                {{ th_ordenable('dni', 'DNI', sort_actual, order_actual) }}
+                {{ th_ordenable('telefono', 'Teléfono', sort_actual, order_actual) }}
+                {{ th_ordenable('localidad', 'Localidad', sort_actual, order_actual) }}
+                {{ th_ordenable('trabajo', 'Trabajo', sort_actual, order_actual) }}
                 <th class="actions-column">Acciones</th>
             </tr>
         </thead>
@@ -74,11 +82,18 @@
                 <!-- DNI -->
                 <td>{{ cliente.dni }}</td>
 
-                <!-- Teléfono -->
+                <!-- Teléfono e Email -->
                 <td>
-                    <a href="tel:{{ cliente.telefono }}" class="phone-link">
-                        📞 {{ cliente.telefono }}
-                    </a>
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <a href="tel:{{ cliente.telefono }}" class="phone-link">
+                            📞 {{ cliente.telefono }}
+                        </a>
+                        {% if cliente.email %}
+                        <a href="mailto:{{ cliente.email }}" class="phone-link" style="font-size: var(--font-size-xs); color: var(--color-gray-500);" title="{{ cliente.email }}">
+                            ✉️ {{ cliente.email }}
+                        </a>
+                        {% endif %}
+                    </div>
                 </td>
 
                 <!-- Localidad -->

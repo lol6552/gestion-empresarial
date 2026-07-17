@@ -21,6 +21,17 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from models import db, Cliente, ParteTrabajo, PartePartida, Numerador
 from config import IVA_PORCENTAJE, AUTONOMO, INSTANCE_DIR, FORMAS_PAGO
 
+# Importamos la utilidad de ordenación
+from utils.ordenacion import aplicar_ordenacion
+
+# Lista blanca de campos ordenables para partes de trabajo
+CAMPOS_ORDENABLES_PARTES = {
+    'numero': ParteTrabajo.numero,
+    'cliente': Cliente.apellido,
+    'fecha': ParteTrabajo.fecha_realizacion,
+    'total': ParteTrabajo.total
+}
+
 # ==============================================================================
 # CONFIGURACIÓN DEL BLUEPRINT
 # ==============================================================================
@@ -40,6 +51,10 @@ def lista():
     termino = request.args.get('q', '').strip()
     fecha_desde = request.args.get('fecha_desde', '').strip()
     fecha_hasta = request.args.get('fecha_hasta', '').strip()
+    
+    # Parámetros de ordenación
+    sort_key = request.args.get('sort', '').strip()
+    order = request.args.get('order', 'asc').strip()
     
     query = ParteTrabajo.query.join(Cliente)
     
@@ -65,13 +80,22 @@ def lista():
         except ValueError:
             pass
     
-    partes = query.order_by(ParteTrabajo.fecha_realizacion.desc()).all()
+    # Aplicar ordenación dinámica
+    query = aplicar_ordenacion(query, sort_key, order, CAMPOS_ORDENABLES_PARTES)
+    
+    # Si no se solicitó ordenación, usar la ordenación por defecto (fecha descendente)
+    if sort_key not in CAMPOS_ORDENABLES_PARTES:
+        query = query.order_by(ParteTrabajo.fecha_realizacion.desc())
+        
+    partes = query.all()
     
     return render_template('partes/lista.html', 
                            partes=partes, 
                            busqueda=termino,
                            fecha_desde=fecha_desde,
-                           fecha_hasta=fecha_hasta)
+                           fecha_hasta=fecha_hasta,
+                           sort_actual=sort_key,
+                           order_actual=order)
 
 
 # ==============================================================================

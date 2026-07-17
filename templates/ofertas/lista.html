@@ -1,4 +1,6 @@
 {% extends 'base.html' %}
+{# Importamos el macro para generar encabezados de tabla ordenables #}
+{% from 'macros/ordenacion.html' import th_ordenable %}
 
 {% block titulo %}Ofertas{% endblock %}
 {% block titulo_pagina %}Gestión de Ofertas{% endblock %}
@@ -18,12 +20,17 @@
     <!-- SECCIÓN: Barra de búsqueda y filtros -->
     <div class="search-container">
         <form action="{{ url_for('ofertas.lista') }}" method="GET" class="search-form">
+            <!-- Campos ocultos para conservar la ordenación al buscar -->
+            {% if sort_actual %}
+            <input type="hidden" name="sort" value="{{ sort_actual }}">
+            <input type="hidden" name="order" value="{{ order_actual }}">
+            {% endif %}
             <div class="search-input-wrapper">
                 <span class="search-icon">🔍</span>
                 <input type="text" name="q" value="{{ busqueda or '' }}" placeholder="Buscar por cliente o número..."
                     class="search-input">
                 {% if busqueda %}
-                <a href="{{ url_for('ofertas.lista') }}" class="search-clear" title="Limpiar búsqueda">✕</a>
+                <a href="{{ url_for('ofertas.lista', sort=sort_actual, order=order_actual) }}" class="search-clear" title="Limpiar búsqueda">✕</a>
                 {% endif %}
             </div>
 
@@ -55,11 +62,12 @@
     <table class="data-table" id="tabla-ofertas">
         <thead>
             <tr>
-                <th>Número</th>
-                <th>Cliente</th>
-                <th>Fecha</th>
-                <th>Total</th>
-                <th>Estado</th>
+                <!-- Encabezados ordenables usando el macro reutilizable -->
+                {{ th_ordenable('numero', 'Número', sort_actual, order_actual) }}
+                {{ th_ordenable('cliente', 'Cliente', sort_actual, order_actual) }}
+                {{ th_ordenable('fecha', 'Fecha', sort_actual, order_actual) }}
+                {{ th_ordenable('total', 'Total', sort_actual, order_actual) }}
+                {{ th_ordenable('estado', 'Estado', sort_actual, order_actual) }}
                 <th class="actions-column">Acciones</th>
             </tr>
         </thead>

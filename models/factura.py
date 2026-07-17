@@ -58,6 +58,9 @@ class Factura(db.Model):
     # Forma de pago utilizada (transferencia, bizum, efectivo)
     forma_pago = db.Column(db.String(50), nullable=False)
     
+    # Estado de pago de la factura (True para pagada, False para pendiente)
+    pagada = db.Column(db.Boolean, default=False, nullable=False)
+    
     # Ruta al archivo PDF generado
     ruta_pdf = db.Column(db.String(500), nullable=True)
     

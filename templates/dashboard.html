@@ -8,13 +8,23 @@
 <!-- SECCIÓN: KPIs Principales -->
 <!-- ====================================================================== -->
 <div class="kpi-row">
+    <!-- Facturación Mensual -->
     <div class="kpi-card kpi-highlight">
         <span class="kpi-icon">💰</span>
         <div class="kpi-content">
             <span class="kpi-value">{{ "%.2f"|format(kpis.total_mes_actual) }} €</span>
-            <span class="kpi-label">Facturado este mes</span>
+            <span class="kpi-label">Facturación mensual</span>
         </div>
     </div>
+    <!-- Facturación Anual -->
+    <div class="kpi-card kpi-highlight">
+        <span class="kpi-icon">📅</span>
+        <div class="kpi-content">
+            <span class="kpi-value">{{ "%.2f"|format(kpis.total_anio_actual) }} €</span>
+            <span class="kpi-label">Facturación anual</span>
+        </div>
+    </div>
+    <!-- Tasa de conversión -->
     <div class="kpi-card">
         <span class="kpi-icon">🎯</span>
         <div class="kpi-content">
@@ -22,6 +32,7 @@
             <span class="kpi-label">Tasa de conversión</span>
         </div>
     </div>
+    <!-- Ticket medio -->
     <div class="kpi-card">
         <span class="kpi-icon">📊</span>
         <div class="kpi-content">
@@ -29,11 +40,12 @@
             <span class="kpi-label">Ticket medio</span>
         </div>
     </div>
+    <!-- Alarma: Facturas pendientes de cobro -->
     <div class="kpi-card {% if facturas_vencidas|length > 0 %}kpi-warning{% endif %}">
         <span class="kpi-icon">⚠️</span>
         <div class="kpi-content">
             <span class="kpi-value">{{ facturas_vencidas|length }}</span>
-            <span class="kpi-label">Facturas vencidas (+30d)</span>
+            <span class="kpi-label">Pendientes de cobro (+30d)</span>
         </div>
     </div>
 </div>
@@ -44,7 +56,13 @@
 <div class="charts-row">
     <!-- Gráfica de Facturación Mensual -->
     <div class="chart-card">
-        <h3>📈 Facturación Mensual</h3>
+        <div class="chart-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+            <h3 style="margin: 0;">📈 Facturación Mensual</h3>
+            <div class="chart-navigation" style="display: flex; gap: 8px;">
+                <button id="btnPrevMonth" class="btn btn-secondary btn-small" title="Mes anterior">◀ Anterior</button>
+                <button id="btnNextMonth" class="btn btn-secondary btn-small" title="Mes siguiente">Siguiente ▶</button>
+            </div>
+        </div>
         <canvas id="chartFacturacion" height="200"></canvas>
     </div>
 
@@ -175,40 +193,79 @@
 
 <script>
     // =========================================================================
-    // GRÁFICA: Facturación Mensual (Barras)
+    // GRÁFICA: Facturación Mensual (Barras) Navegable
     // =========================================================================
     const ctxFacturacion = document.getElementById('chartFacturacion').getContext('2d');
-    new Chart(ctxFacturacion, {
+    
+    // Datos completos provenientes del backend
+    const todosLosDatos = {{ facturacion_mensual.valores | tojson }};
+    const todasLasEtiquetas = {{ facturacion_mensual.etiquetas | tojson }};
+    
+    const mesesVisibles = 6;
+    // Empezamos mostrando los últimos 6 meses (el final de la lista)
+    let indiceInicio = Math.max(0, todosLosDatos.length - mesesVisibles);
+    
+    // Inicializar el gráfico con la porción visible
+    const chartFacturacion = new Chart(ctxFacturacion, {
         type: 'bar',
         data: {
-            labels: {{ facturacion_mensual.etiquetas | tojson }},
-        datasets: [{
-            label: 'Facturación (€)',
-            data: {{ facturacion_mensual.valores | tojson }},
-        backgroundColor: 'rgba(26, 51, 77, 0.8)',
-        borderColor: 'rgba(26, 51, 77, 1)',
-        borderWidth: 1,
-        borderRadius: 5
+            labels: todasLasEtiquetas.slice(indiceInicio, indiceInicio + mesesVisibles),
+            datasets: [{
+                label: 'Facturación (€)',
+                data: todosLosDatos.slice(indiceInicio, indiceInicio + mesesVisibles),
+                backgroundColor: 'rgba(26, 51, 77, 0.8)',
+                borderColor: 'rgba(26, 51, 77, 1)',
+                borderWidth: 1,
+                borderRadius: 5
             }]
         },
         options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function (value) {
-                        return value + ' €';
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) {
+                            return value + ' €';
+                        }
                     }
                 }
             }
         }
-    }
     });
+    
+    // Función para actualizar los datos de la gráfica y la visibilidad de los botones
+    function actualizarGrafica() {
+        chartFacturacion.data.labels = todasLasEtiquetas.slice(indiceInicio, indiceInicio + mesesVisibles);
+        chartFacturacion.data.datasets[0].data = todosLosDatos.slice(indiceInicio, indiceInicio + mesesVisibles);
+        chartFacturacion.update();
+        
+        // Deshabilitar botones si se llega a los límites del histórico
+        document.getElementById('btnPrevMonth').disabled = (indiceInicio === 0);
+        document.getElementById('btnNextMonth').disabled = (indiceInicio >= todosLosDatos.length - mesesVisibles);
+    }
+    
+    // Manejo de clics en navegación
+    document.getElementById('btnPrevMonth').addEventListener('click', function() {
+        if (indiceInicio > 0) {
+            indiceInicio--;
+            actualizarGrafica();
+        }
+    });
+    
+    document.getElementById('btnNextMonth').addEventListener('click', function() {
+        if (indiceInicio < todosLosDatos.length - mesesVisibles) {
+            indiceInicio++;
+            actualizarGrafica();
+        }
+    });
+    
+    // Ajustar estado inicial de los botones
+    actualizarGrafica();
 
     // =========================================================================
     // GRÁFICA: Estados de Ofertas (Donut)
