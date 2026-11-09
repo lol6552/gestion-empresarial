@@ -228,8 +228,7 @@
                     <select id="cliente_id" name="cliente_id" required>
                         <option value="">-- Seleccionar cliente --</option>
                         {% for cliente in clientes %}
-                        <option value="{{ cliente.id }}" {% if (datos and datos.cliente_id|string==cliente.id|string) or
-                            (oferta and oferta.cliente_id==cliente.id) %}selected{% endif %}>
+                        <option value="{{ cliente.id }}" {% if (datos is not none and datos.cliente_id|string==cliente.id|string) or (datos is none and oferta and oferta.cliente_id==cliente.id) %}selected{% endif %}>
                             {{ cliente.apellido }}, {{ cliente.nombre }} ({{ cliente.dni }})
                         </option>
                         {% endfor %}
@@ -259,7 +258,26 @@
                     </tr>
                 </thead>
                 <tbody id="partidas-body">
-                    {% if oferta and oferta.partidas.count() > 0 %}
+                    {# En errores, conservar todas las filas enviadas antes que los datos guardados. #}
+                    {% if datos is not none %}
+                    {% set descripciones = datos.getlist('partida_descripcion[]') %}
+                    {% set cantidades = datos.getlist('partida_cantidad[]') %}
+                    {% set precios = datos.getlist('partida_precio[]') %}
+                    {% set filas = [descripciones|length, cantidades|length, precios|length, 1]|max %}
+                    {% for i in range(filas) %}
+                    <tr class="partida-row">
+                        <td><input type="text" name="partida_descripcion[]" value="{{ descripciones[i]|default('') }}" required></td>
+                        <td><input type="number" name="partida_precio[]" value="{{ precios[i]|default('') }}" step="0.01"
+                                min="0" class="precio-input" required>
+                        </td>
+                        <td><input type="number" name="partida_cantidad[]" value="{{ cantidades[i]|default('') }}" step="0.01"
+                                min="0.01" class="cantidad-input" required>
+                        </td>
+                        <td><input type="text" class="partida-total-input" value="0.00 €" readonly></td>
+                        <td><button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button></td>
+                    </tr>
+                    {% endfor %}
+                    {% elif oferta and oferta.partidas.count() > 0 %}
                     {% for partida in oferta.partidas.order_by('orden').all() %}
                     <tr class="partida-row">
                         <td><input type="text" name="partida_descripcion[]" value="{{ partida.descripcion }}"
@@ -313,21 +331,17 @@
 
             <div class="payment-methods">
                 <label class="payment-method-option">
-                    <input type="radio" name="forma_pago" value="efectivo" {% if (datos and datos.forma_pago=='efectivo'
-                        ) or (oferta and oferta.forma_pago=='efectivo' ) %}checked{% endif %}>
+                    <input type="radio" name="forma_pago" value="efectivo" {% if (datos is not none and datos.forma_pago=='efectivo') or (datos is none and oferta and oferta.forma_pago=='efectivo') %}checked{% endif %}>
                     <span>💵 Efectivo</span>
                 </label>
 
                 <label class="payment-method-option">
-                    <input type="radio" name="forma_pago" value="bizum" {% if (datos and datos.forma_pago=='bizum' ) or
-                        (oferta and oferta.forma_pago=='bizum' ) %}checked{% endif %}>
+                    <input type="radio" name="forma_pago" value="bizum" {% if (datos is not none and datos.forma_pago=='bizum') or (datos is none and oferta and oferta.forma_pago=='bizum') %}checked{% endif %}>
                     <span>📱 Bizum</span>
                 </label>
 
                 <label class="payment-method-option">
-                    <input type="radio" name="forma_pago" value="transferencia" {% if (datos and
-                        datos.forma_pago=='transferencia' ) or (oferta and oferta.forma_pago=='transferencia' )
-                        %}checked{% endif %}>
+                    <input type="radio" name="forma_pago" value="transferencia" {% if (datos is not none and datos.forma_pago=='transferencia') or (datos is none and oferta and oferta.forma_pago=='transferencia') %}checked{% endif %}>
                     <span>🏦 Transferencia</span>
                 </label>
             </div>

@@ -58,10 +58,10 @@ def obtener_facturacion_mensual():
                      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
     
     for i in range(meses - 1, -1, -1):
-        # Calculamos el mes objetivo (hacia atrás)
-        fecha_objetivo = hoy - timedelta(days=i * 30.5)  # Usamos 30.5 días aproximado para evitar saltos de mes incorrectos
-        mes = fecha_objetivo.month
-        anio = fecha_objetivo.year
+        # Restar meses naturales evita saltar febrero o repetir meses de 31 días.
+        indice_mes = hoy.year * 12 + hoy.month - 1 - i
+        anio, mes_desde_cero = divmod(indice_mes, 12)
+        mes = mes_desde_cero + 1
         
         # Consulta: suma de facturas de ese mes/año
         total_mes = db.session.query(func.sum(Factura.total)).filter(

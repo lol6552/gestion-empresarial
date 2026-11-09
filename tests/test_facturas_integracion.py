@@ -35,7 +35,7 @@ class FacturasIntegracionTest(unittest.TestCase):
         self.assertEqual(caso["total"], "21.18")
 
 
-def ejecutar_aislado():
+def ejecutar_aislado(comprobaciones=None):
     import shutil
     import tempfile
     from decimal import Decimal
@@ -211,6 +211,8 @@ def ejecutar_aislado():
                     assert str(importes[1]) in html and str(importes[2]) in html
                     resultados.append(dict(minutos=minutos, subtotal=str(importes[0]),
                                            iva=str(importes[1]), total=str(importes[2]), flujos_ok=True, clientes_ok=True))
+                if comprobaciones is not None:
+                    comprobaciones(aplicacion, db, cliente_http)
             finally:
                 db.session.remove(); db.engine.dispose()
                 os.chdir(origen)

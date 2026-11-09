@@ -223,7 +223,7 @@ def nueva():
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al guardar la oferta: {str(e)}', 'error')
+            flash('No se ha guardado. Revisa las fechas, cantidades y precios; tus datos se conservan.', 'error')
             return render_template('ofertas/formulario.html',
                                    clientes=clientes,
                                    oferta=None,
@@ -333,7 +333,7 @@ def editar(id):
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar la oferta: {str(e)}', 'error')
+            flash('No se ha guardado. Revisa las fechas, cantidades y precios; tus datos se conservan.', 'error')
             return render_template('ofertas/formulario.html',
                                    clientes=clientes,
                                    oferta=oferta,

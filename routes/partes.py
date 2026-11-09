@@ -249,7 +249,8 @@ def nuevo():
             return redirect(url_for('partes.lista'))
             
         except ValueError as e:
-            flash(f'Error en los datos: {str(e)}', 'error')
+            db.session.rollback()
+            flash('Revisa las fechas, horas, cantidades y precios; tus datos se conservan.', 'error')
             return render_template('partes/formulario.html',
                                    clientes=clientes,
                                    parte=None,
@@ -257,7 +258,7 @@ def nuevo():
                                    fecha_hoy=date.today().isoformat())
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al guardar el parte: {str(e)}', 'error')
+            flash('No se ha guardado. Revisa las fechas, cantidades y precios; tus datos se conservan.', 'error')
             return render_template('partes/formulario.html',
                                    clientes=clientes,
                                    parte=None,
@@ -378,7 +379,7 @@ def editar(id):
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar el parte: {str(e)}', 'error')
+            flash('No se ha guardado. Revisa las fechas, cantidades y precios; tus datos se conservan.', 'error')
             return render_template('partes/formulario.html',
                                    clientes=clientes,
                                    parte=parte,

@@ -190,8 +190,7 @@
                     <select id="cliente_id" name="cliente_id" required>
                         <option value="">-- Seleccionar cliente --</option>
                         {% for cliente in clientes %}
-                        <option value="{{ cliente.id }}" {% if (datos and datos.cliente_id|string==cliente.id|string) or
-                            (parte and parte.cliente_id==cliente.id) %}selected{% endif %}>
+                        <option value="{{ cliente.id }}" {% if (datos is not none and datos.cliente_id|string==cliente.id|string) or (datos is none and parte and parte.cliente_id==cliente.id) %}selected{% endif %}>
                             {{ cliente.apellido }}, {{ cliente.nombre }} ({{ cliente.dni }})
                         </option>
                         {% endfor %}
@@ -221,7 +220,26 @@
                     </tr>
                 </thead>
                 <tbody id="partidas-body">
-                    {% if parte and parte.partidas.count() > 0 %}
+                    {# En errores, conservar todas las filas enviadas antes que los datos guardados. #}
+                    {% if datos is not none %}
+                    {% set descripciones = datos.getlist('partida_descripcion[]') %}
+                    {% set cantidades = datos.getlist('partida_cantidad[]') %}
+                    {% set precios = datos.getlist('partida_precio[]') %}
+                    {% set filas = [descripciones|length, cantidades|length, precios|length, 1]|max %}
+                    {% for i in range(filas) %}
+                    <tr class="partida-row">
+                        <td><input type="text" name="partida_descripcion[]" value="{{ descripciones[i]|default('') }}"></td>
+                        <td><input type="number" name="partida_cantidad[]" value="{{ cantidades[i]|default('') }}" step="0.01"
+                                min="0.01" class="cantidad-input">
+                        </td>
+                        <td><input type="number" name="partida_precio[]" value="{{ precios[i]|default('') }}" step="0.01"
+                                min="0" class="precio-input">
+                        </td>
+                        <td><input type="text" class="partida-total-input" value="0.00 €" readonly></td>
+                        <td><button type="button" class="btn-remove-row" onclick="removeRow(this)">✕</button></td>
+                    </tr>
+                    {% endfor %}
+                    {% elif parte and parte.partidas.count() > 0 %}
                     {% for partida in parte.partidas.order_by('orden').all() %}
                     <tr class="partida-row">
                         <td><input type="text" name="partida_descripcion[]" value="{{ partida.descripcion }}"
@@ -344,15 +362,15 @@
 
             <div class="payment-methods">
                 <label class="payment-method-option">
-                    <input type="radio" name="forma_pago" value="efectivo">
+                    <input type="radio" name="forma_pago" value="efectivo" {% if datos is not none and datos.forma_pago=='efectivo' %}checked{% endif %}>
                     <span>💵 Efectivo</span>
                 </label>
                 <label class="payment-method-option">
-                    <input type="radio" name="forma_pago" value="bizum">
+                    <input type="radio" name="forma_pago" value="bizum" {% if datos is not none and datos.forma_pago=='bizum' %}checked{% endif %}>
                     <span>📱 Bizum</span>
                 </label>
                 <label class="payment-method-option">
-                    <input type="radio" name="forma_pago" value="transferencia">
+                    <input type="radio" name="forma_pago" value="transferencia" {% if datos is not none and datos.forma_pago=='transferencia' %}checked{% endif %}>
                     <span>🏦 Transferencia</span>
                 </label>
             </div>
