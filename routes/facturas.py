@@ -8,7 +8,7 @@ Contiene todas las rutas CRUD para facturas con tabla de partidas/conceptos.
 import os
 from datetime import datetime, date
 from decimal import Decimal, ROUND_HALF_UP
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, abort
 
 from models import db, Cliente, Oferta, OfertaPartida, ParteTrabajo, PartePartida, Factura, FacturaPartida, Numerador
 from config import IVA_PORCENTAJE, AUTONOMO, INSTANCE_DIR, FORMAS_PAGO, BASE_DIR
@@ -237,6 +237,25 @@ def _procesar_formulario_factura(form, clientes, oferta_id=None, parte_id=None, 
                                origen=None,
                                fecha_hoy=date.today().isoformat())
     
+    # Validar antes de cambiar importes, partidas o numeradores.
+    try:
+        cliente_id = int(cliente_id)
+    except ValueError:
+        abort(400, description='El cliente seleccionado no es válido.')
+    if db.session.get(Cliente, cliente_id) is None:
+        abort(400, description='El cliente seleccionado no existe.')
+
+    # En edición, los vínculos se toman de la factura guardada, nunca del formulario.
+    vinculos = (
+        (Oferta, factura.oferta_id if factura is not None else oferta_id),
+        (ParteTrabajo, factura.parte_id if factura is not None else parte_id),
+    )
+    for modelo, documento_id in vinculos:
+        if documento_id is not None:
+            documento = db.session.get(modelo, documento_id)
+            if documento is None or documento.cliente_id != cliente_id:
+                abort(400, description='La factura y su parte o presupuesto deben pertenecer al mismo cliente.')
+
     try:
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d')
         

@@ -25,6 +25,9 @@ class FacturasIntegracionTest(unittest.TestCase):
         self.assertEqual(len(self.resultados), 4)
         self.assertTrue(all(r["flujos_ok"] for r in self.resultados))
 
+    def test_relaciones_clientes_validas_e_incorrectas(self):
+        self.assertTrue(all(r["clientes_ok"] for r in self.resultados))
+
     def test_regresion_iva_30_minutos_persistido(self):
         caso = next(r for r in self.resultados if r["minutos"] == 30)
         self.assertEqual(caso["subtotal"], "17.50")
@@ -71,7 +74,7 @@ def ejecutar_aislado():
         assert Path(config.INSTANCE_DIR).resolve() == temporal / "instance"
         config.AUTONOMO = {clave: "FICTICIO" for clave in config.AUTONOMO}
         import app
-        from models import db, Cliente, ParteTrabajo, Factura, Oferta, OfertaPartida
+        from models import db, Cliente, ParteTrabajo, Factura, Oferta, OfertaPartida, Numerador
         assert Path(app.__file__).resolve() == temporal / "app.py"
         aplicacion = app.crear_app()
         aplicacion.config.update(TESTING=True)
@@ -89,6 +92,24 @@ def ejecutar_aislado():
             respuesta = cliente_http.post(ruta, data=datos, follow_redirects=True)
             assert respuesta.status_code == 200, ruta
 
+        def estado_facturas():
+            # Comparar tambien partidas y numeradores: un rechazo no debe escribir nada.
+            db.session.expire_all()
+            return (
+                [(tuple(getattr(f, c.name) for c in Factura.__table__.columns),
+                  [tuple(getattr(p, c.name) for c in p.__table__.columns)
+                   for p in f.partidas.order_by("id").all()])
+                 for f in Factura.query.order_by(Factura.id).all()],
+                [(n.tipo_documento, n.ultimo_numero)
+                 for n in Numerador.query.order_by(Numerador.id).all()]
+            )
+
+        def rechazar(ruta, datos):
+            anterior = estado_facturas()
+            respuesta = cliente_http.post(ruta, data=datos)
+            assert respuesta.status_code == 400, (ruta, respuesta.status_code)
+            assert estado_facturas() == anterior, "El rechazo ha alterado datos"
+
         def comprobar_factura(identificador, esperados):
             db.session.expire_all()  # Volver a leer lo persistido en SQLite.
             factura = db.session.get(Factura, identificador)
@@ -103,7 +124,10 @@ def ejecutar_aislado():
                 cliente = Cliente(codigo="CLI-FICTICIO", nombre="Cliente", apellido="Ficticio",
                                   dni="PRUEBA", telefono="000000000", direccion="Calle ficticia",
                                   codigo_postal="00000", localidad="Ciudad ficticia")
-                db.session.add(cliente); db.session.commit()
+                otro_cliente = Cliente(codigo="CLI-OTRO", nombre="Otro", apellido="Ficticio",
+                                       dni="OTRA-PRUEBA", telefono="000000001", direccion="Otra calle",
+                                       codigo_postal="00000", localidad="Otra ciudad")
+                db.session.add_all([cliente, otro_cliente]); db.session.commit()
                 assert cliente_http.get("/version").status_code == 200
                 esperados = {20: ("11.67", "2.45", "14.12"), 30: ("17.50", "3.68", "21.18"),
                              45: ("26.25", "5.51", "31.76"), 60: ("35.00", "7.35", "42.35")}
@@ -138,6 +162,13 @@ def ejecutar_aislado():
                     comprobar_factura(factura.id, importes)
                     enviar(f"/facturas/editar/{factura.id}", dict(formulario, descripcion="Editada ficticia"))
                     comprobar_factura(factura.id, importes)
+                    # Una factura manual puede cambiar a otro cliente existente.
+                    enviar(f"/facturas/editar/{factura.id}", dict(formulario, cliente_id=str(otro_cliente.id)))
+                    db.session.refresh(factura)
+                    assert factura.cliente_id == otro_cliente.id
+                    for cliente_invalido in ("999999", "no-es-un-id", "0"):
+                        rechazar("/facturas/nueva", dict(formulario, cliente_id=cliente_invalido))
+                        rechazar(f"/facturas/editar/{factura.id}", dict(formulario, cliente_id=cliente_invalido))
                     # Leer el formulario real de conversion y enviar sus partidas.
                     respuesta = cliente_http.get(f"/facturas/desde-parte/{parte.id}")
                     assert respuesta.status_code == 200
@@ -145,10 +176,14 @@ def ejecutar_aislado():
                     convertido = dict(formulario)
                     for campo in ("partida_descripcion[]", "partida_cantidad[]", "partida_precio[]"):
                         convertido[campo] = campos.datos[campo]
+                    rechazar(f"/facturas/desde-parte/{parte.id}",
+                             dict(convertido, cliente_id=str(otro_cliente.id)))
                     enviar(f"/facturas/desde-parte/{parte.id}", convertido)
                     factura = Factura.query.order_by(Factura.id.desc()).first()
                     comprobar_factura(factura.id, importes)
                     assert factura.parte_id == parte.id
+                    rechazar(f"/facturas/editar/{factura.id}",
+                             dict(convertido, cliente_id=str(otro_cliente.id)))
                     enviar(f"/facturas/editar/{factura.id}", dict(convertido, descripcion="Convertida editada"))
                     comprobar_factura(factura.id, importes)
                     # Conversion desde oferta: comprobar la otra entrada del procesador.
@@ -158,10 +193,16 @@ def ejecutar_aislado():
                     db.session.add(OfertaPartida(oferta_id=oferta.id, descripcion="Servicio ficticio",
                                                 precio=importes[0], cantidad=Decimal("1"), total=importes[0]))
                     db.session.commit()
+                    rechazar(f"/facturas/desde-oferta/{oferta.id}",
+                             dict(formulario, cliente_id=str(otro_cliente.id)))
                     enviar(f"/facturas/desde-oferta/{oferta.id}", formulario)
                     factura = Factura.query.order_by(Factura.id.desc()).first()
                     comprobar_factura(factura.id, importes)
                     assert factura.oferta_id == oferta.id
+                    rechazar(f"/facturas/editar/{factura.id}",
+                             dict(formulario, cliente_id=str(otro_cliente.id)))
+                    enviar(f"/facturas/editar/{factura.id}", formulario)
+                    comprobar_factura(factura.id, importes)
                     # HTML usa los valores ya guardados; sin generar PDF ni ejecutar navegador.
                     from flask import render_template
                     html = render_template("facturas/pdf.html", factura=factura,
@@ -169,7 +210,7 @@ def ejecutar_aislado():
                                            iva_porcentaje=21, config_formas_pago=config.FORMAS_PAGO, url_firma=None)
                     assert str(importes[1]) in html and str(importes[2]) in html
                     resultados.append(dict(minutos=minutos, subtotal=str(importes[0]),
-                                           iva=str(importes[1]), total=str(importes[2]), flujos_ok=True))
+                                           iva=str(importes[1]), total=str(importes[2]), flujos_ok=True, clientes_ok=True))
             finally:
                 db.session.remove(); db.engine.dispose()
                 os.chdir(origen)
