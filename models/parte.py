@@ -13,7 +13,7 @@ Incluye desglose detallado de:
 """
 
 from datetime import datetime, date, time
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from models import db
 
 
@@ -64,7 +64,7 @@ class ParteTrabajo(db.Model):
     # Precio por hora de trabajo
     precio_hora_trabajo = db.Column(db.Numeric(10, 2), nullable=False)
     
-    # Subtotal de horas de trabajo = horas_trabajo × precio_hora_trabajo
+    # Importe calculado desde minutos reales; las horas guardadas son informativas
     subtotal_trabajo = db.Column(db.Numeric(10, 2), nullable=False)
     
     # ==============================================================================
@@ -141,7 +141,7 @@ class ParteTrabajo(db.Model):
             hora_fin (time): Hora de finalización
         
         Retorna:
-            Decimal: Horas trabajadas con precisión de 2 decimales
+            Decimal: Horas informativas con 2 decimales; no usarlas para facturar
         
         Ejemplo:
             horas = ParteTrabajo.calcular_horas_trabajo(
@@ -160,6 +160,21 @@ class ParteTrabajo(db.Model):
         
         return round(horas, 2)
     
+    @staticmethod
+    def calcular_importe_trabajo(hora_inicio, hora_fin, precio_hora):
+        """Calcula la mano de obra desde minutos reales y redondea a céntimos.
+
+        Conserva la restricción actual: inicio y fin deben ser del mismo día.
+        Las horas redondeadas que se guardan no intervienen en este cálculo.
+        """
+        minutos_inicio = hora_inicio.hour * 60 + hora_inicio.minute
+        minutos_fin = hora_fin.hour * 60 + hora_fin.minute
+        minutos = minutos_fin - minutos_inicio
+        if minutos <= 0:
+            raise ValueError('La hora de fin debe ser posterior a la hora de inicio')
+        importe = Decimal(minutos) * precio_hora / Decimal('60')
+        return importe.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
     @property
     def incluye_desplazamiento(self):
         """Indica si el parte incluye costes de desplazamiento."""

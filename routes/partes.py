@@ -14,7 +14,7 @@ Este Blueprint maneja todas las operaciones relacionadas con partes de trabajo.
 
 import os
 from datetime import datetime, date, time
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 
 # Importamos la base de datos, modelos y configuración
@@ -189,12 +189,19 @@ def nuevo():
                     })
             
             # Calcular subtotales
-            subtotal_trabajo = horas_trabajo * precio_hora_trabajo
+            subtotal_trabajo = ParteTrabajo.calcular_importe_trabajo(
+                hora_inicio, hora_fin, precio_hora_trabajo
+            )
             subtotal_desplazamiento = horas_desplazamiento * precio_hora_desplazamiento
-            subtotal_general = subtotal_trabajo + subtotal_desplazamiento + materiales_importe
+            # Redondeo comercial: base e IVA a céntimos antes de sumarlos.
+            subtotal_general = (subtotal_trabajo + subtotal_desplazamiento + materiales_importe).quantize(
+                Decimal('0.01'), rounding=ROUND_HALF_UP
+            )
             
             # Calcular IVA y total
-            iva = subtotal_general * Decimal(str(IVA_PORCENTAJE)) / Decimal('100')
+            iva = (subtotal_general * Decimal(str(IVA_PORCENTAJE)) / Decimal('100')).quantize(
+                Decimal('0.01'), rounding=ROUND_HALF_UP
+            )
             total = subtotal_general + iva
             
             # Generar número de parte
@@ -334,10 +341,17 @@ def editar(id):
                     db.session.add(partida)
             
             horas_trabajo = ParteTrabajo.calcular_horas_trabajo(hora_inicio, hora_fin)
-            subtotal_trabajo = horas_trabajo * precio_hora_trabajo
+            subtotal_trabajo = ParteTrabajo.calcular_importe_trabajo(
+                hora_inicio, hora_fin, precio_hora_trabajo
+            )
             subtotal_desplazamiento = horas_desplazamiento * precio_hora_desplazamiento
-            subtotal_general = subtotal_trabajo + subtotal_desplazamiento + materiales_importe
-            iva = subtotal_general * Decimal(str(IVA_PORCENTAJE)) / Decimal('100')
+            # Redondeo comercial: base e IVA a céntimos antes de sumarlos.
+            subtotal_general = (subtotal_trabajo + subtotal_desplazamiento + materiales_importe).quantize(
+                Decimal('0.01'), rounding=ROUND_HALF_UP
+            )
+            iva = (subtotal_general * Decimal(str(IVA_PORCENTAJE)) / Decimal('100')).quantize(
+                Decimal('0.01'), rounding=ROUND_HALF_UP
+            )
             total = subtotal_general + iva
             
             # Actualizar parte

@@ -7,7 +7,7 @@ Contiene todas las rutas CRUD para facturas con tabla de partidas/conceptos.
 
 import os
 from datetime import datetime, date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 
 from models import db, Cliente, Oferta, OfertaPartida, ParteTrabajo, PartePartida, Factura, FacturaPartida, Numerador
@@ -176,11 +176,14 @@ def desde_parte(parte_id):
             'total': str(p.total)
         })
     
-    # Mano de obra
+    # Una unidad por el importe guardado evita recalcular con horas redondeadas.
+    # La duración original se conserva en la descripción, también para históricos.
+    minutos_trabajo = ((parte.hora_fin.hour * 60 + parte.hora_fin.minute)
+                      - (parte.hora_inicio.hour * 60 + parte.hora_inicio.minute))
     partidas_precargadas.append({
-        'descripcion': f'Mano de obra ({parte.horas_trabajo}h)',
-        'cantidad': str(parte.horas_trabajo),
-        'precio': str(parte.precio_hora_trabajo),
+        'descripcion': f'Mano de obra ({minutos_trabajo} min; {parte.horas_trabajo}h aprox.)',
+        'cantidad': '1',
+        'precio': str(parte.subtotal_trabajo),
         'total': str(parte.subtotal_trabajo)
     })
     
@@ -256,8 +259,11 @@ def _procesar_formulario_factura(form, clientes, oferta_id=None, parte_id=None, 
                     'orden': i
                 })
         
-        # Calcular IVA y total
-        iva = subtotal * Decimal(str(IVA_PORCENTAJE)) / Decimal('100')
+        # Redondear la base y el IVA antes de sumarlos: igual en todos los flujos.
+        subtotal = subtotal.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        iva = (subtotal * Decimal(str(IVA_PORCENTAJE)) / Decimal('100')).quantize(
+            Decimal('0.01'), rounding=ROUND_HALF_UP
+        )
         total = subtotal + iva
         
         if factura:

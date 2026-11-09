@@ -415,7 +415,14 @@
         row.querySelector('.partida-total-input').value = total.toFixed(2) + ' €';
     }
 
-    function calcularHoras() {
+    // Redondeo comercial a céntimos, compensando el error binario de JavaScript.
+    function redondearMoneda(valor) {
+        const absoluto = Math.abs(valor);
+        const ajuste = Number.EPSILON * Math.max(1, absoluto);
+        return Math.sign(valor) * Math.round((absoluto + ajuste) * 100) / 100;
+    }
+
+    function calcularMinutosTrabajo() {
         const inicio = document.getElementById('hora_inicio').value;
         const fin = document.getElementById('hora_fin').value;
 
@@ -427,12 +434,16 @@
             const minutosFin = hF * 60 + mF;
 
             if (minutosFin > minutosInicio) {
-                const horas = (minutosFin - minutosInicio) / 60;
-                document.getElementById('horas-display').textContent = horas.toFixed(2) + ' horas';
-                return horas;
+                return minutosFin - minutosInicio;
             }
         }
         return 0;
+    }
+
+    function calcularHoras() {
+        const horas = calcularMinutosTrabajo() / 60;
+        document.getElementById('horas-display').textContent = horas.toFixed(2) + ' horas';
+        return horas;
     }
 
     function calcularTotales() {
@@ -444,16 +455,17 @@
             materiales += cantidad * precio;
         });
 
-        const horas = calcularHoras();
+        calcularHoras();
+        const minutosTrabajo = calcularMinutosTrabajo();
         const precioHora = parseFloat(document.getElementById('precio_hora_trabajo').value) || 0;
         const horasDesp = parseFloat(document.getElementById('horas_desplazamiento').value) || 0;
         const precioDesp = parseFloat(document.getElementById('precio_hora_desplazamiento').value) || 0;
 
-        const subtotalTrabajo = horas * precioHora;
+        const subtotalTrabajo = redondearMoneda(minutosTrabajo * precioHora / 60);
         const subtotalDesplazamiento = horasDesp * precioDesp;
-        const subtotal = materiales + subtotalTrabajo + subtotalDesplazamiento;
-        const iva = subtotal * (IVA_PORCENTAJE / 100);
-        const total = subtotal + iva;
+        const subtotal = redondearMoneda(materiales + subtotalTrabajo + subtotalDesplazamiento);
+        const iva = redondearMoneda(subtotal * (IVA_PORCENTAJE / 100));
+        const total = redondearMoneda(subtotal + iva);
 
         document.getElementById('materiales-display').textContent = materiales.toFixed(2) + ' €';
         document.getElementById('subtotal-trabajo-display').textContent = subtotalTrabajo.toFixed(2) + ' €';
