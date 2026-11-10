@@ -11,7 +11,8 @@ Este Blueprint maneja la página principal y estadísticas de negocio.
 
 from flask import Blueprint, render_template
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
+from zoneinfo import ZoneInfo
 from sqlalchemy import func, extract
 
 # Importamos los modelos para obtener estadísticas
@@ -29,14 +30,25 @@ principal_bp = Blueprint('principal', __name__)
 # FUNCIONES AUXILIARES PARA MÉTRICAS
 # ==============================================================================
 
-def obtener_facturacion_mensual():
+def fecha_actual_madrid():
+    """Fecha civil del negocio, independiente de la zona horaria del servidor."""
+    return datetime.now(ZoneInfo("Europe/Madrid")).replace(tzinfo=None)
+
+
+def sumar_importe(campo, *filtros):
+    """Mantiene Decimal hasta la presentación; los periodos son [inicio, fin)."""
+    valor = db.session.query(func.sum(campo)).filter(*filtros).scalar()
+    return (valor or Decimal("0.00")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def obtener_facturacion_mensual(hoy=None):
     """
     Calcula la facturación total de los meses con datos (mínimo 6, máximo 24).
     
     Retorna:
         dict: {'etiquetas': ['Ene', 'Feb', ...], 'valores': [1500.00, 2300.00, ...]}
     """
-    hoy = datetime.now()
+    hoy = hoy if hoy is not None else fecha_actual_madrid()
     
     # Buscamos la fecha de la factura más antigua para saber cuántos meses consultar
     factura_antigua = Factura.query.order_by(Factura.fecha.asc()).first()
@@ -64,18 +76,16 @@ def obtener_facturacion_mensual():
         mes = mes_desde_cero + 1
         
         # Consulta: suma de facturas de ese mes/año
-        total_mes = db.session.query(func.sum(Factura.total)).filter(
+        total_mes = sumar_importe(
+            Factura.subtotal,
             extract('month', Factura.fecha) == mes,
             extract('year', Factura.fecha) == anio
-        ).scalar()
-        
-        # Si no hay facturas, el total es 0
-        total_mes = float(total_mes) if total_mes else 0.0
-        
+        )
+
         # Etiqueta en formato "Mes AÑO" (ej: "Ene 26")
         etiqueta_mes = f"{nombres_meses[mes - 1]} {str(anio)[2:]}"
         etiquetas.append(etiqueta_mes)
-        valores.append(round(total_mes, 2))
+        valores.append(float(total_mes))
     
     return {'etiquetas': etiquetas, 'valores': valores}
 
@@ -125,41 +135,40 @@ def obtener_facturas_vencidas(dias_limite=30):
     return facturas_vencidas
 
 
-def obtener_kpis_facturacion():
+def obtener_kpis_facturacion(hoy=None):
+    """Bases sin IVA por fecha de emisión e IVA real del trimestre natural.
+
+    Todas las facturas emitidas cuentan, tanto pagadas como pendientes.
+    El modelo actual no tiene estados de borrador, anulación o rectificación.
     """
-    Calcula KPIs de facturación: total mes actual, total año actual y ticket medio.
-    
-    Retorna:
-        dict: {'total_mes_actual': X, 'total_anio_actual': Y, 'ticket_medio': Z}
-    """
-    hoy = datetime.now()
-    
-    # Total facturado este mes
-    total_mes = db.session.query(func.sum(Factura.total)).filter(
-        extract('month', Factura.fecha) == hoy.month,
-        extract('year', Factura.fecha) == hoy.year
-    ).scalar()
-    total_mes = float(total_mes) if total_mes else 0.0
-    
-    # Total facturado este año
-    total_anio = db.session.query(func.sum(Factura.total)).filter(
-        extract('year', Factura.fecha) == hoy.year
-    ).scalar()
-    total_anio = float(total_anio) if total_anio else 0.0
-    
-    # Ticket medio (total / número de facturas)
+    hoy = hoy if hoy is not None else fecha_actual_madrid()
+    inicio_mes = datetime(hoy.year, hoy.month, 1)
+    fin_mes = datetime(hoy.year + (hoy.month == 12), hoy.month % 12 + 1, 1)
+    inicio_anio = datetime(hoy.year, 1, 1)
+    fin_anio = datetime(hoy.year + 1, 1, 1)
+    trimestre = (hoy.month - 1) // 3 + 1
+    inicio_trimestre = datetime(hoy.year, 3 * trimestre - 2, 1)
+    fin_trimestre = (datetime(hoy.year + 1, 1, 1) if trimestre == 4
+                     else datetime(hoy.year, 3 * trimestre + 1, 1))
     num_facturas = Factura.query.count()
-    total_global = db.session.query(func.sum(Factura.total)).scalar()
-    total_global = float(total_global) if total_global else 0.0
-    
-    ticket_medio = 0.0
-    if num_facturas > 0:
-        ticket_medio = round(total_global / num_facturas, 2)
-    
+    total_global = sumar_importe(Factura.subtotal)
+    ticket_medio = ((total_global / num_facturas).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP) if num_facturas else Decimal("0.00"))
+    # Solo el mes ordinario: los vencimientos dependen de calendario y modalidad.
+    # https://sede.agenciatributaria.gob.es/Sede/iva/presentar-declaracion-iva-modelo-303/plazo-presentacion-modelo-303.html
+    mes_presentacion = ("abril", "julio", "octubre", "enero")[trimestre - 1]
     return {
-        'total_mes_actual': round(total_mes, 2),
-        'total_anio_actual': round(total_anio, 2),
-        'ticket_medio': ticket_medio
+        'total_mes_actual': sumar_importe(Factura.subtotal, Factura.fecha >= inicio_mes,
+                                          Factura.fecha < fin_mes),
+        'total_anio_actual': sumar_importe(Factura.subtotal, Factura.fecha >= inicio_anio,
+                                           Factura.fecha < fin_anio),
+        'ticket_medio': ticket_medio,
+        'hucha_iva': sumar_importe(Factura.iva, Factura.fecha >= inicio_trimestre,
+                                  Factura.fecha < fin_trimestre),
+        'trimestre': trimestre,
+        'anio': hoy.year,
+        'mes_presentacion': mes_presentacion,
+        'anio_presentacion': hoy.year + (trimestre == 4),
     }
 
 
@@ -193,14 +202,15 @@ def dashboard():
     }
     
     # Datos para gráficas (obtener todos los meses con datos)
-    facturacion_mensual = obtener_facturacion_mensual()
+    hoy = fecha_actual_madrid()
+    facturacion_mensual = obtener_facturacion_mensual(hoy)
     estados_ofertas = obtener_estados_ofertas()
     
     # Facturas vencidas (más de 30 días y no pagadas)
     facturas_vencidas = obtener_facturas_vencidas(30)
     
     # KPIs
-    kpis = obtener_kpis_facturacion()
+    kpis = obtener_kpis_facturacion(hoy)
     
     return render_template('dashboard.html',
                            estadisticas=estadisticas,

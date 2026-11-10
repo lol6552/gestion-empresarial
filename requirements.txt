@@ -18,3 +18,6 @@ SQLAlchemy>=2.0.36
 # Playwright: Usa Chromium para renderizar HTML a PDF
 # Requiere ejecutar: playwright install chromium
 playwright>=1.40.0
+
+# Base IANA para Europe/Madrid en Windows
+tzdata>=2024.1

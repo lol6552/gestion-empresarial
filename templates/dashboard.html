@@ -7,13 +7,13 @@
 <!-- ====================================================================== -->
 <!-- SECCIÓN: KPIs Principales -->
 <!-- ====================================================================== -->
-<div class="kpi-row">
+<div class="kpi-row" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));">
     <!-- Facturación Mensual -->
     <div class="kpi-card kpi-highlight">
         <span class="kpi-icon">💰</span>
         <div class="kpi-content">
             <span class="kpi-value">{{ "%.2f"|format(kpis.total_mes_actual) }} €</span>
-            <span class="kpi-label">Facturación mensual</span>
+            <span class="kpi-label">Facturación mensual (sin IVA)</span>
         </div>
     </div>
     <!-- Facturación Anual -->
@@ -21,7 +21,16 @@
         <span class="kpi-icon">📅</span>
         <div class="kpi-content">
             <span class="kpi-value">{{ "%.2f"|format(kpis.total_anio_actual) }} €</span>
-            <span class="kpi-label">Facturación anual</span>
+            <span class="kpi-label">Facturación anual (sin IVA)</span>
+        </div>
+    </div>
+    <div class="kpi-card kpi-highlight">
+        <span class="kpi-icon">🏦</span>
+        <div class="kpi-content">
+            <span class="kpi-value">{{ ("%.2f"|format(kpis.hucha_iva)).replace('.', ',') }} €</span>
+            <span class="kpi-label">Hucha de IVA — Trimestre actual</span>
+            <small>IVA repercutido del {{ kpis.trimestre }}T {{ kpis.anio }} · Declaración ordinaria en {{ kpis.mes_presentacion }} {{ kpis.anio_presentacion }}</small>
+            <small title="Importe orientativo de IVA repercutido. No incluye IVA soportado deducible ni ajustes fiscales.">Importe orientativo ⓘ</small>
         </div>
     </div>
     <!-- Tasa de conversión -->
@@ -37,7 +46,7 @@
         <span class="kpi-icon">📊</span>
         <div class="kpi-content">
             <span class="kpi-value">{{ "%.2f"|format(kpis.ticket_medio) }} €</span>
-            <span class="kpi-label">Ticket medio</span>
+            <span class="kpi-label">Ticket medio (sin IVA)</span>
         </div>
     </div>
     <!-- Alarma: Facturas pendientes de cobro -->
@@ -57,7 +66,7 @@
     <!-- Gráfica de Facturación Mensual -->
     <div class="chart-card">
         <div class="chart-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
-            <h3 style="margin: 0;">📈 Facturación Mensual</h3>
+            <h3 style="margin: 0;">📈 Facturación Mensual (sin IVA)</h3>
             <div class="chart-navigation" style="display: flex; gap: 8px;">
                 <button id="btnPrevMonth" class="btn btn-secondary btn-small" title="Mes anterior">◀ Anterior</button>
                 <button id="btnNextMonth" class="btn btn-secondary btn-small" title="Mes siguiente">Siguiente ▶</button>
@@ -211,7 +220,7 @@
         data: {
             labels: todasLasEtiquetas.slice(indiceInicio, indiceInicio + mesesVisibles),
             datasets: [{
-                label: 'Facturación (€)',
+                label: 'Facturación sin IVA (€)',
                 data: todosLosDatos.slice(indiceInicio, indiceInicio + mesesVisibles),
                 backgroundColor: 'rgba(26, 51, 77, 0.8)',
                 borderColor: 'rgba(26, 51, 77, 1)',
@@ -223,11 +232,17 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => 'Facturación sin IVA: ' + new Intl.NumberFormat('es-ES', {style: 'currency', currency: 'EUR'}).format(context.parsed.y)
+                    }
+                }
             },
             scales: {
                 y: {
                     beginAtZero: true,
+                    title: { display: true, text: "Euros (sin IVA)" },
                     ticks: {
                         callback: function (value) {
                             return value + ' €';
