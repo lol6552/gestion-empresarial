@@ -11,6 +11,58 @@ import sys
 import unittest
 
 
+def instalar_protector(origen, temporal, base):
+    """Protege el proceso de pruebas, incluida la limpieza relativa a dir_fd.
+
+    El evento ``open`` no comunica dir_fd. En Linux presentamos a os.open
+    una ruta absoluta por /proc/self/fd, anclada al mismo descriptor, para
+    que el sistema y el auditor interpreten la misma ruta. No se omite
+    ninguna comprobación ni se permiten rutas por su prefijo /proc.
+    Solo se instala en los subprocesos aislados de estas pruebas.
+    """
+    origen, temporal, base = (Path(p).resolve() for p in (origen, temporal, base))
+    assert not temporal.is_relative_to(origen), "El temporal debe estar fuera del origen"
+    assert base.is_relative_to(temporal), "SQLite debe estar dentro del temporal"
+    abrir_original = os.open
+
+    def ruta_con_descriptor(ruta, dir_fd=None):
+        ruta = Path(os.fsdecode(ruta))
+        if not ruta.is_absolute() and dir_fd is not None:
+            # AT_FDCWD (-100) significa el directorio de trabajo en Linux.
+            if sys.platform == "linux" and dir_fd == -100:
+                return ruta
+            assert sys.platform == "linux", "dir_fd no soportado por el protector"
+            ancla = Path(f"/proc/self/fd/{dir_fd}")
+            assert ancla.is_dir(), "No se puede resolver el descriptor de directorio"
+            ruta = ancla / ruta
+        return ruta
+
+    def abrir(ruta, flags, mode=0o777, *, dir_fd=None):
+        ruta = ruta_con_descriptor(ruta, dir_fd)
+        return abrir_original(ruta, flags, mode, dir_fd=dir_fd)
+
+    def proteger(evento, argumentos):
+        if evento == "sqlite3.connect":
+            assert Path(os.fsdecode(argumentos[0])).resolve() == base, "Conexion SQLite no autorizada"
+        if evento == "open" and isinstance(argumentos[0], (str, bytes, os.PathLike)):
+            ruta = ruta_con_descriptor(argumentos[0]).resolve()
+            assert not ruta.is_relative_to(origen / "instance"), "Acceso a instance real bloqueado"
+            modo, flags = argumentos[1:3]
+            escritura = ((isinstance(modo, str) and any(c in modo for c in "wax+")) or
+                         (isinstance(flags, int) and flags &
+                          (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC)))
+            if escritura:
+                assert ruta.is_relative_to(temporal), "Escritura fuera del temporal bloqueada"
+        if evento in ("shutil.rmtree", "os.remove", "os.rmdir"):
+            # Estos eventos sí incluyen dir_fd; -1 representa su ausencia.
+            dir_fd = argumentos[1]
+            ruta = ruta_con_descriptor(argumentos[0], None if dir_fd == -1 else dir_fd).resolve()
+            assert ruta.is_relative_to(temporal), "Borrado fuera del temporal bloqueado"
+
+    sys.addaudithook(proteger)
+    os.open = abrir
+
+
 class FacturasIntegracionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -57,19 +109,7 @@ def ejecutar_aislado(comprobaciones=None):
         sys.path.insert(0, str(temporal))
         os.chdir(temporal)
 
-        def proteger(evento, argumentos):
-            if evento == "sqlite3.connect":
-                assert Path(argumentos[0]).resolve() == base, "Conexion SQLite no autorizada"
-            if evento == "open" and isinstance(argumentos[0], (str, bytes, os.PathLike)):
-                ruta = Path(argumentos[0]).resolve()
-                assert not ruta.is_relative_to(origen / "instance"), "Acceso a instance real bloqueado"
-                modo, flags = argumentos[1:3]
-                escritura = ((isinstance(modo, str) and any(c in modo for c in "wax+")) or
-                             (isinstance(flags, int) and flags &
-                              (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC)))
-                if escritura:
-                    assert ruta.is_relative_to(temporal), "Escritura fuera del temporal bloqueada"
-        sys.addaudithook(proteger)
+        instalar_protector(origen, temporal, base)
         import config
         assert Path(config.INSTANCE_DIR).resolve() == temporal / "instance"
         config.AUTONOMO = {clave: "FICTICIO" for clave in config.AUTONOMO}
